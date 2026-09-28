@@ -3,3 +3,5 @@ app/jni/SDL/src
 .gradle
 app/build
 app/.externalNativeBuild
+local.properties
+.private/

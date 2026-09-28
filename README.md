@@ -1,161 +1,34 @@
-# sm64ex nightly branch Android Port
-This is a port of the reconstructed Super Mario 64 source code to Android using SDL2 with OpenGL ES 2.0.
+# SM64 Handheld
 
-It has cross-platform Touch Controls, Audio works, it saves the game to the app's internal storage and you can play it with an external keyboard or controller as well (tested on PS3 controller).
+A controller-first Android fork of [VDavid003's SM64 Android port](https://github.com/VDavid003/sm64-port-android-base). This repository tracks the Android wrapper; [sm64-handheld-engine](https://github.com/arcanite24/sm64-handheld-engine) is its engine submodule. [backlog.md](backlog.md) records the path to a casual, fully self-contained handheld experience.
 
-# Build instructions
+## What this fork changes
 
-## Linux
+- ARM64 build with the upstream DynOS and 60 FPS interpolation patches, widescreen, Better Camera, and texture fixes.
+- Default right-stick camera and no on-screen touch controls; controller hot-unplug no longer closes a null haptics handle.
+- Immersive gameplay and a 60 Hz display preference on supported handhelds.
+- Correct, stable Android `files/user` path for saves and DynOS settings. When installed, the Render96 world and Mario model packs start enabled; their DynOS toggles can return to Classic.
+- A landscape setup screen navigable with D-pad/A: import your own `base.zip` through Android's file picker, download the official Render96 archive with a pinned SHA-256 integrity check, choose Classic or Render96, then play.
+- Tested local builds on an AYN Thor and Odin 2 Portal. An in-place Thor upgrade preserved its save file.
 
-**Install dependencies:**
+The current build is a **private development build**. It still needs a locally built `base.zip`. There is no public APK or bundled ROM, model, or texture assets.
+The setup app targets Android 8.0+ (API 26); Thor and Odin 2 Portal run newer Android versions.
 
-This depends on your distro, but if you can build the PC port and you have Android SDK/NDK and you are able to build Android apps using gradle, you should be fine.
+## Build with your own US ROM
 
-**Clone the repository:**
-```sh
-git clone --recursive https://github.com/VDavid003/sm64-port-android-base --branch sm64ex_nightly
-cd sm64-port-android-base
+Clone recursively, then put your own verified US `baserom.us.z64` in `app/jni/src/`. The build script checks SHA-1 `9bef1128717f958171a4afac3ed78ee2bb4e86ce` and rejects other versions. The ROM and generated files are ignored by Git.
+
+```powershell
+git clone --recursive --branch feat/handheld-foundation https://github.com/arcanite24/sm64-handheld.git
+cd sm64-handheld
+docker build -t sm64-handheld-builder .
+docker run --rm --mount "type=bind,source=$((Get-Location).Path),target=/sm64" sm64-handheld-builder
 ```
 
-**Copy in your baserom:**
-```sh
-cp /path/to/your/baserom.z64 ./app/jni/src/baserom.us.z64
-```
+The private outputs are `app/build/outputs/apk/debug/app-debug.apk` and `app/jni/src/build/us_pc/res/base.zip`. The APK is debug-signed; keep one signing key for future upgrades. Copy `base.zip` to a location the device's file picker can open, then choose it on the app's setup screen. The app validates the archive before replacing an existing copy.
 
-**Get SDL sources:**
-```sh
-./getSDL.sh
-```
+For Render96, choose **Install Render96** on the setup screen. The app downloads the [official v3.25 DynOS archive](https://github.com/Render96/ModelPack/releases/tag/3.25), checks its SHA-256, and installs only the world and Mario packs. The model pack has no explicit redistribution license in its repository, so it is deliberately not bundled here.
 
-**Perform native build twice:**
-```sh
-# if you have more cores available, you can increase the --jobs parameter
-cd app/jni/src
-make --jobs 4
-make --jobs 4
-cd ../../..
-```
+## Current limits
 
-**Perform Android build:**
-```sh
-./gradlew assembleDebug
-```
-
-**Enjoy your apk:**
-```sh
-ls -al ./app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Windows
-
-**Install dependencies:**
-
-You'll need everything you need to make Windows builds (not just vanilla sm64 ones, but sm64ex ones), and to be able to build Android apps using `gradlew.bat`. This includes Java JDK (with the JDK being JAVA_HOME) and Android SDK/NDK. Every commmand is executed in MSYS2 unless otherwise noted.
-
-**Clone the repository:**
-```sh
-git clone --recursive https://github.com/VDavid003/sm64-port-android-base --branch sm64ex_nightly
-```
-
-**Copy in your baserom:**
-Use the file explorer, or whatever you want, just put it in `app/jni/src`, and name it like you'd do on the PC port.
-```sh
-cp /path/to/your/baserom.z64 ./app/jni/src/baserom.us.z64
-```
-
-**Get SDL sources:**
-```sh
-./getSDL.sh
-```
-
-**Perform native build twice:**
-```sh
-# if you have more cores available, you can increase the --jobs parameter
-cd app/jni/src
-make --jobs 4
-make --jobs 4
-cd ../../..
-```
-
-**Perform Android build:**
-Do this in a normal Command Prompt!
-```
-gradlew.bat assembleDebug
-```
-
-## Docker
-
-**Clone the repository:**
-```sh
-git clone --recursive https://github.com/VDavid003/sm64-port-android-base --branch sm64ex_nightly
-```
-
-**Create the build image:**
-```sh
-# navigate into newly cloned repo
-cd sm64-port-android-base
-# build the docker image
-docker build . -t sm64_android
-```
-**Copy in your baserom:**
-```sh
-cp /path/to/your/baserom.z64 ./app/jni/src/baserom.us.z64
-```
-
-**Setup symlinks for SDL:**
-```sh
-docker run --rm -v $(pwd):/sm64 sm64_android sh -c "ln -nsf /SDL2-2.0.12/src /sm64/app/jni/SDL/src"
-docker run --rm -v $(pwd):/sm64 sm64_android sh -c "ln -nsf /SDL2-2.0.12/include /sm64/app/jni/SDL/include"
-```
-
-**Perform native build twice:**
-```sh
-# if you have more cores available, you can increase the --jobs parameter
-docker run --rm -v $(pwd):/sm64 sm64_android sh -c "cd /sm64/app/jni/src && make --jobs 4"
-docker run --rm -v $(pwd):/sm64 sm64_android sh -c "cd /sm64/app/jni/src && make --jobs 4"
-```
-
-**Perform Android build:**
-```sh
-docker run --rm -v $(pwd):/sm64 sm64_android sh -c "./gradlew assembleDebug"
-```
-
-**Enjoy your apk:**
-```sh
-ls -al ./app/build/outputs/apk/debug/app-debug.apk
-```
-
-# Configuration
-If you want to customize the build with build options, you should make the native build with those options first (put them after the make command like on normal repos), then before performing the Android build, edit `app/jni/src/Android.mk` and enable the options you'd like.
-
-## EXTERNAL_DATA option
-If you use `EXTERNAL_DATA`, you'll find a zip named `base.zip` in `app/jni/src/build/<version>_pc/res`.
-
-You should take this zip and put it in `Internal Storage/Android/data/com.vdavid003.sm64port/files/res`
-
-## Render96/Other DynOS models instructions
-The 60fps patch is strongly recommended as it not only makes the game look smoother but doubles the performance as well with VSync on.
-
-Turning VSync off is not recommended as it can cause random "over-speedups" where when getting out of a laggy area, the game suddenly becomes way too fast. Also if you have a non-60hz phone, try setting your refresh rate to 60hz.
-
-Sometimes turning VSync on is problematic, so if you have the game already installed, enable it before installing a heavier version.
-
-**Follow normal instructions, but stop before doing the native build**
-
-**Apply the DynOS patch and the 60fps patch:**
-```sh
-cd app/jni/src
-git apply enhancements/DynOS.1.0.patch
-git apply enhancements/60fps_ex.patch
-cd ../../..
-```
-
-**Continue with the normal instructions and build and install the game.**
-
-**Follow the instructions for EXTERNAL_DATA**
-
-**Create `Internal Storage/Android/data/com.vdavid003.sm64port/files/dynos/packs` directory**
-
-**Extract the Render96 DynOS zip file to `Internal Storage/Android/data/com.vdavid003.sm64port/files/dynos/packs`**
-
-**Enable the model pack using DynOS**
+The inherited in-game remapping menu is still awkward on Android. A ROM-only importer is not yet available, so producing `base.zip` still requires a private build. Controller mappings and long-session frame pacing also need hands-on validation. Follow [backlog.md](backlog.md) for those tasks. Do not publish a generated APK or `base.zip` from a ROM without distribution rights.
