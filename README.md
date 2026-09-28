@@ -9,6 +9,7 @@ A controller-first Android fork of [VDavid003's SM64 Android port](https://githu
 - Immersive gameplay and a 60 Hz display preference on supported handhelds.
 - Correct, stable Android `files/user` path for saves and DynOS settings. When installed, the Render96 world and Mario model packs start enabled; their DynOS toggles can return to Classic.
 - A landscape setup screen navigable with D-pad/A: import your own `base.zip` through Android's file picker, download the official Render96 archive with a pinned SHA-256 integrity check, choose Classic or Render96, then play.
+- A handheld controls screen shows the detected gamepad and current mappings, guides Jump/Attack/Crouch/Pause remapping, adjusts stick dead zone and trigger press point, toggles Better Camera, and resets the handheld defaults. Settings take effect on the next game launch.
 - Tested local builds on an AYN Thor and Odin 2 Portal. An in-place Thor upgrade preserved its save file.
 
 The current build is a **private development build**. It still needs a locally built `base.zip`. There is no public APK or bundled ROM, model, or texture assets.
@@ -31,4 +32,4 @@ For Render96, choose **Install Render96** on the setup screen. The app downloads
 
 ## Current limits
 
-The inherited in-game remapping menu is still awkward on Android. A ROM-only importer is not yet available, so producing `base.zip` still requires a private build. Controller mappings and long-session frame pacing also need hands-on validation. Follow [backlog.md](backlog.md) for those tasks. Do not publish a generated APK or `base.zip` from a ROM without distribution rights.
+The launcher covers common controls, while the inherited advanced in-game menu is still awkward on Android. A ROM-only importer is not yet available, so producing `base.zip` still requires a private build. Physical control feel and long-session frame pacing also need hands-on validation. Follow [backlog.md](backlog.md) for those tasks. Do not publish a generated APK or `base.zip` from a ROM without distribution rights.

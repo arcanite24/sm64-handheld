@@ -118,17 +118,28 @@ public final class HandheldLauncherActivity extends Activity {
         secondParams.leftMargin = dp(12);
         cards.addView(second, secondParams);
 
-        playButton = button("Play Super Mario 64  →", root, new View.OnClickListener() {
+        LinearLayout launchActions = new LinearLayout(this);
+        launchActions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams launchParams = new LinearLayout.LayoutParams(-1, -2);
+        launchParams.topMargin = dp(12);
+        root.addView(launchActions, launchParams);
+        playButton = button("Play Super Mario 64  →", launchActions, new View.OnClickListener() {
             @Override public void onClick(View v) {
                 startActivity(new Intent(HandheldLauncherActivity.this, sm64portActivity.class));
             }
         });
-        LinearLayout.LayoutParams playParams = (LinearLayout.LayoutParams) playButton.getLayoutParams();
-        playParams.topMargin = dp(12);
-        playButton.setLayoutParams(playParams);
+        Button controlsButton = button("Controls & camera", launchActions, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                startActivity(new Intent(HandheldLauncherActivity.this, ControllerSettingsActivity.class));
+            }
+        });
+        playButton.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 2));
+        LinearLayout.LayoutParams controlsButtonParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        controlsButtonParams.leftMargin = dp(12);
+        controlsButton.setLayoutParams(controlsButtonParams);
         message = label("", 14, MUTED, false);
         root.addView(message);
-        TextView controls = label("LEFT STICK  Move     A  Jump     B  Attack     RIGHT STICK  Camera     START  Pause", 12, MUTED, false);
+        TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     Open Controls to see your button layout.", 12, MUTED, false);
         LinearLayout.LayoutParams controlsParams = new LinearLayout.LayoutParams(-1, -2);
         controlsParams.topMargin = dp(8);
         root.addView(controls, controlsParams);

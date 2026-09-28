@@ -75,6 +75,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="ControllerSettingsActivity"
+            android:screenOrientation="landscape"
+            android:exported="false" />
+
         <activity android:name="sm64portActivity"
             android:label="@string/app_name"
             android:alwaysRetainTaskState="true"
