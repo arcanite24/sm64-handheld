@@ -44,4 +44,7 @@ RUN wget https://www.libsdl.org/release/SDL2-2.0.12.zip && \
 
 WORKDIR /sm64
 
+RUN apt-get update && apt-get install -y --no-install-recommends file && \
+  rm -rf /var/lib/apt/lists/*
+
 CMD ["bash", "scripts/build-private.sh"]

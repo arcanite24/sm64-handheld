@@ -15,6 +15,7 @@ else {
 android {
     namespace 'com.vdavid003.sm64port'
     compileSdkVersion 35
+    ndkVersion '21.4.7075529'
     signingConfigs {
         if (hasReleaseSigning) {
             handheldRelease {

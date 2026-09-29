@@ -31,7 +31,7 @@ if [[ -f .private/android/debug.keystore ]]; then
     mkdir -p /root/.android
     ln -nsf /sm64/.private/android/debug.keystore /root/.android/debug.keystore
 fi
-printf 'sdk.dir=%s\nndk.dir=%s\n' "$ANDROID_HOME" "$ANDROID_HOME/ndk/21.4.7075529" > local.properties
+printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
 
 python3 scripts/prepare-rom-free-native.py
 make -C app/jni/src -j8 NOEXTRACT=1 EXTERNAL_DATA=1 \

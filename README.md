@@ -15,7 +15,7 @@ A controller-first Android fork of [VDavid003's SM64 Android port](https://githu
 - Launched local builds on an AYN Thor and Odin 2 Portal. Thor controller events verified movement, camera, jump, attack, crouch, and pause; the Odin disconnected before final controller verification. An in-place Thor upgrade preserved its save file. On Thor, the HD installer placed 2,220 PNGs, and a game launch showed visibly sharper textures; the Classic/HD switch was exercised in both directions.
 
 The current build is a **private development build**. Its setup screen prepares game files from a user-owned US ROM; a PC-built `base.zip` is no longer needed for first-run setup. The APK itself now builds from a clean checkout without a ROM. There is no public APK or bundled ROM, model, or texture assets.
-The app supports Android 8.0+ (minimum API 26). The v0.6 wrapper targets API 35; its launcher, controls, and progress picker have been checked on an Android 15 emulator, while the full ARM64 build still needs a physical-device check.
+The app supports Android 8.0+ (minimum API 26). The v0.6 APK targets API 35 and builds ROM-free with its ARM64 library. Its launcher, controls, and progress picker have been checked on an Android 15 emulator; gameplay with this build still needs a physical-device check.
 
 ## Build the ROM-free APK
 
@@ -38,4 +38,4 @@ CI builds the full ROM-free Android APK, runs ROM-free asset-decoder checks, and
 
 ## Current limits
 
-The launcher covers common controls, while the inherited advanced in-game menu is still awkward on Android. Thor has launched and played using the on-device-generated archive, but a full playthrough is still pending. Native resource licensing and debug-to-release save migration on physical hardware need final checks. The API 35 wrapper needs a full ARM64 build and gameplay check on Thor/Odin. The user still reports severe choppiness despite earlier 60 FPS presentation samples; motion and input feel need live reproduction. Follow [backlog.md](backlog.md) for those tasks. Do not publish a generated `base.zip` from a ROM without distribution rights.
+The launcher covers common controls, while the inherited advanced in-game menu is still awkward on Android. Thor has launched and played using the on-device-generated archive, but a full playthrough is still pending. Native resource licensing and debug-to-release save migration on physical hardware need final checks. The API 35 ARM64 APK needs a gameplay check on Thor/Odin. The user still reports severe choppiness despite earlier 60 FPS presentation samples; motion and input feel need live reproduction. Follow [backlog.md](backlog.md) for those tasks. Do not publish a generated `base.zip` from a ROM without distribution rights.
