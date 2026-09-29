@@ -1,5 +1,6 @@
 package org.libsdl.app;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
@@ -172,6 +173,7 @@ public class HIDDeviceManager {
         return result;
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag") // The flag is set on API 33+; older APIs lack this overload.
     private void initializeUSB() {
         mUsbManager = (UsbManager)mContext.getSystemService(Context.USB_SERVICE);
 
@@ -370,8 +372,12 @@ public class HIDDeviceManager {
         }
     }
 
+    @SuppressLint("MissingPermission") // This legacy path runs only where BLUETOOTH, not BLUETOOTH_CONNECT, applies.
     private void initializeBluetooth() {
         Log.d(TAG, "Initializing Bluetooth");
+
+        // System gamepads use Android input events; direct Steam Controller HID is optional.
+        if (Build.VERSION.SDK_INT >= 31) return;
 
         if (mContext.getPackageManager().checkPermission(android.Manifest.permission.BLUETOOTH, mContext.getPackageName()) != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "Couldn't initialize Bluetooth, missing android.permission.BLUETOOTH");
@@ -432,6 +438,7 @@ public class HIDDeviceManager {
     // Chromebooks do not pass along ACTION_ACL_CONNECTED / ACTION_ACL_DISCONNECTED properly.
     // This function provides a sort of dummy version of that, watching for changes in the
     // connected devices and attempting to add controllers as things change.
+    @SuppressLint("MissingPermission") // Scheduled only by the pre-Android 12 Bluetooth path.
     public void chromebookConnectionHandler() {
         if (!mIsChromebook) {
             return;
@@ -506,6 +513,7 @@ public class HIDDeviceManager {
         }
     }
 
+    @SuppressLint("MissingPermission") // Called only by the pre-Android 12 Bluetooth path.
     public boolean isSteamController(BluetoothDevice bluetoothDevice) {
         // Sanity check.  If you pass in a null device, by definition it is never a Steam Controller.
         if (bluetoothDevice == null) {

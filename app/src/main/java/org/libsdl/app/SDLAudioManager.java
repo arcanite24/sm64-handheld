@@ -1,5 +1,9 @@
 package org.libsdl.app;
 
+import android.annotation.SuppressLint;
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.*;
 import android.os.Build;
 import android.util.Log;
@@ -31,7 +35,15 @@ public class SDLAudioManager
         }
     }
 
+    @SuppressLint("MissingPermission") // The capture branch checks RECORD_AUDIO before creating AudioRecord.
     protected static int[] open(boolean isCapture, int sampleRate, int audioFormat, int desiredChannels, int desiredFrames) {
+        if (isCapture) {
+            Context context = SDLActivity.getContext();
+            if (context == null || context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                Log.w(TAG, "Audio capture unavailable without microphone permission");
+                return null;
+            }
+        }
         int channelConfig;
         int sampleSize;
         int frameSize;
