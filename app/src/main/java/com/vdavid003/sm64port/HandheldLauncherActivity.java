@@ -128,7 +128,7 @@ public final class HandheldLauncherActivity extends Activity {
         cards.addView(second, secondParams);
 
         LinearLayout textures = card("03  SHARPER TEXTURES",
-                "Optional Render96 HD pack from its official release · 392 MB download.");
+                "Optional Render96 HD pack · 392 MB download · may reduce frame rate on slower handhelds.");
         LinearLayout.LayoutParams textureParams = new LinearLayout.LayoutParams(0, -2, 1);
         textureParams.leftMargin = dp(12);
         cards.addView(textures, textureParams);
