@@ -32,10 +32,8 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.zip.ZipFile;
 
 public final class HandheldLauncherActivity extends Activity {
-    private static final int PICK_RESOURCES = 1;
     private static final int PICK_ROM = 2;
     private static final String US_ROM_SHA1 = "9bef1128717f958171a4afac3ed78ee2bb4e86ce";
     private static final String MODEL_URL =
@@ -58,13 +56,11 @@ public final class HandheldLauncherActivity extends Activity {
     private static final int MUTED = 0xffb8c4d8;
 
     private Button playButton;
-    private Button resourcesButton;
     private Button romButton;
     private Button modelsButton;
     private Button presetButton;
     private Button texturesButton;
     private Button texturePresetButton;
-    private TextView resourcesStatus;
     private TextView romStatus;
     private TextView modelsStatus;
     private TextView texturesStatus;
@@ -102,16 +98,11 @@ public final class HandheldLauncherActivity extends Activity {
         cardRow.topMargin = dp(12);
         root.addView(cards, cardRow);
 
-        LinearLayout first = card("01  GAME FILES", "Choose your own US ROM and privately built base.zip.");
+        LinearLayout first = card("01  GAME FILES", "Choose your own original US ROM. Game files are prepared here on your handheld.");
         romStatus = label("", 13, MUTED, false);
         first.addView(romStatus);
-        romButton = button("Choose US ROM", first, new View.OnClickListener() {
+        romButton = button("Choose US ROM & prepare game", first, new View.OnClickListener() {
             @Override public void onClick(View v) { chooseFile(PICK_ROM); }
-        });
-        resourcesStatus = label("", 13, MUTED, false);
-        first.addView(resourcesStatus);
-        resourcesButton = button("Choose base.zip", first, new View.OnClickListener() {
-            @Override public void onClick(View v) { chooseFile(PICK_RESOURCES); }
         });
         cards.addView(first, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -297,14 +288,13 @@ public final class HandheldLauncherActivity extends Activity {
         boolean romReady = validRom(rom());
         boolean models = modelsInstalled();
         romStatus.setText(romReady ? "Verified US ROM ready" : "US ROM needed before you can play");
-        resourcesStatus.setText(ready ? "Ready to play" : "Needed before you can play");
+        if (romReady && !ready) romStatus.setText("Verified ROM ready · prepare game files to play");
         modelsStatus.setText(models ? "Installed" : "Optional · Classic models are ready");
         texturesStatus.setText(texturesInstalled() ?
                 (texturesEnabled() ? "HD textures active" : "Installed · Classic textures active") :
                 "Optional · uses about 406 MB after installation");
         playButton.setEnabled(ready && romReady && !working);
         romButton.setEnabled(!working);
-        resourcesButton.setEnabled(!working);
         modelsButton.setEnabled(!working && !models);
         modelsButton.setText(models ? "Render96 installed" : "Install Render96");
         presetButton.setEnabled(!working && models);
@@ -330,16 +320,11 @@ public final class HandheldLauncherActivity extends Activity {
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
-        if (request == PICK_RESOURCES && result == RESULT_OK && data != null) {
-            final Uri uri = data.getData();
-            if (uri != null) work(new Job() {
-                @Override public void run() throws Exception { importResources(uri); }
-            }, "Game files imported.");
-        } else if (request == PICK_ROM && result == RESULT_OK && data != null) {
+        if (request == PICK_ROM && result == RESULT_OK && data != null) {
             final Uri uri = data.getData();
             if (uri != null) work(new Job() {
                 @Override public void run() throws Exception { importRom(uri); }
-            }, "US ROM verified and imported.");
+            }, "US ROM verified and game files prepared. Ready to play.");
         }
     }
 
@@ -378,37 +363,22 @@ public final class HandheldLauncherActivity extends Activity {
             }
             if (!validRom(temp))
                 throw new IllegalArgumentException("Choose the original 8 MB US Super Mario 64 ROM");
-            replace(temp, target);
-        } finally {
-            temp.delete();
-        }
-    }
-
-    private void importResources(Uri uri) throws Exception {
-        File target = resources();
-        if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
-            throw new IllegalStateException("Could not create game storage");
-        File temp = new File(target.getParentFile(), "base.zip.part");
-        try {
-            InputStream input = getContentResolver().openInputStream(uri);
-            if (input == null) throw new IllegalArgumentException("Could not read selected file");
+            final byte[] bytes = java.nio.file.Files.readAllBytes(temp.toPath());
+            File archive = resources();
+            if (!archive.getParentFile().isDirectory() && !archive.getParentFile().mkdirs())
+                throw new IllegalStateException("Could not create game storage");
+            File archiveTemp = new File(archive.getParentFile(), "base.zip.part");
             try {
-                OutputStream output = new FileOutputStream(temp);
-                try {
-                    copy(input, output, 128L * 1024 * 1024);
-                } finally {
-                    output.close();
+                try (OutputStream output = new FileOutputStream(archiveTemp)) {
+                    RomBaseArchive.write(bytes, new RomBaseArchive.ManifestSource() {
+                        @Override public InputStream open(String name) throws Exception {
+                            return getAssets().open(name);
+                        }
+                    }, output);
                 }
+                replace(archiveTemp, archive);
             } finally {
-                input.close();
-            }
-            ZipFile zip = new ZipFile(temp);
-            try {
-                if (zip.getEntry("sound/sound_data.ctl.le.64") == null ||
-                    zip.getEntry("gfx/textures/skybox_tiles/bits.22.rgba16.png") == null)
-                    throw new IllegalArgumentException("This is not a compatible SM64 base.zip");
-            } finally {
-                zip.close();
+                archiveTemp.delete();
             }
             replace(temp, target);
         } finally {

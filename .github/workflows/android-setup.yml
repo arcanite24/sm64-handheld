@@ -16,16 +16,26 @@ jobs:
       - run: docker build -t sm64-handheld-builder .
       - name: Check runtime ROM slices
         run: python3 app/jni/src/tests/test_runtime_rom_assets.py
-      - name: Check ROM texture decoder and manifest
+      - name: Check ROM texture and sound generators
         run: |
           python3 scripts/generate-us-texture-map.py > /tmp/us-textures.tsv
           diff -u app/src/main/assets/us-textures.tsv /tmp/us-textures.tsv
+          python3 scripts/generate-us-sequence-map.py > /tmp/us-sound-sequences.tsv
+          diff -u app/src/main/assets/us-sound-sequences.tsv /tmp/us-sound-sequences.tsv
           mkdir -p /tmp/rom-image-check
           javac -d /tmp/rom-image-check \
             app/src/main/java/com/vdavid003/sm64port/RomImageDecoder.java \
             app/src/main/java/com/vdavid003/sm64port/RomTextureArchive.java \
-            tests/RomImageDecoderCheck.java
+            app/src/main/java/com/vdavid003/sm64port/RomSoundSequences.java \
+            app/src/main/java/com/vdavid003/sm64port/RomSoundTable.java \
+            app/src/main/java/com/vdavid003/sm64port/RomSoundControl.java \
+            app/src/main/java/com/vdavid003/sm64port/RomBaseArchive.java \
+            tests/RomImageDecoderCheck.java tests/RomSoundSequencesCheck.java \
+            tests/RomSoundTableCheck.java tests/RomSoundControlCheck.java
           java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomImageDecoderCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundSequencesCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundTableCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundControlCheck
       - name: Check atomic save writes
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
