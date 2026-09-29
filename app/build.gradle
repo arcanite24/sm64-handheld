@@ -1,5 +1,10 @@
 def buildAsLibrary = project.hasProperty('BUILD_AS_LIBRARY');
 def buildAsApplication = !buildAsLibrary
+def releaseStoreFile = System.getenv('SM64_RELEASE_STORE_FILE')
+def releaseStorePassword = System.getenv('SM64_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('SM64_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('SM64_RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 if (buildAsApplication) {
     apply plugin: 'com.android.application'
 }
@@ -8,19 +13,31 @@ else {
 }
 
 android {
-    compileSdkVersion 26
+    namespace 'com.vdavid003.sm64port'
+    compileSdkVersion 35
+    ndkVersion '21.4.7075529'
+    signingConfigs {
+        if (hasReleaseSigning) {
+            handheldRelease {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     defaultConfig {
         if (buildAsApplication) {
             applicationId "com.vdavid003.sm64port"
         }
-        minSdkVersion 16
-        targetSdkVersion 26
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion 26
+        targetSdkVersion 35
+        versionCode 6
+        versionName "0.6-handheld"
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4", "APP_PLATFORM=android-16"
-                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+                abiFilters 'arm64-v8a'
             }
             // cmake {
             //     arguments "-DANDROID_APP_PLATFORM=android-16", "-DANDROID_STL=c++_static"
@@ -33,6 +50,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig signingConfigs.handheldRelease
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
@@ -49,23 +67,15 @@ android {
         }
        
     }
-    lintOptions {
-        abortOnError false
-    }
-    
-    if (buildAsLibrary) {
-        libraryVariants.all { variant ->
-            variant.outputs.each { output ->
-                def outputFile = output.outputFile
-                if (outputFile != null && outputFile.name.endsWith(".aar")) {
-                    def fileName = "com.vdavid003.sm64port.aar";
-                    output.outputFile = new File(outputFile.parent, fileName);
-                }
-            }
-        }
+    lint {
+        abortOnError true
     }
 }
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation('org.apache.commons:commons-compress:1.19') {
+        exclude group: 'org.tukaani', module: 'xz'
+    }
+    implementation 'org.tukaani:xz:1.9'
 }

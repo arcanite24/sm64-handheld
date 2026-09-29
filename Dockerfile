@@ -1,4 +1,6 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
   apt-get install -y \
@@ -12,7 +14,9 @@ RUN apt-get update && \
     libsdl2-dev \
     libusb-1.0-0-dev \
     libzstd-dev \
+    openjdk-17-jdk-headless \
     python3 \
+    unzip \
     wget
 
 ENV ANDROID_HOME=/usr/lib/android-sdk
@@ -25,8 +29,9 @@ RUN wget https://dl.google.com/android/repository/commandlinetools-linux-6609375
   unzip -o commandlinetools-linux-6609375_latest.zip -d ${ANDROID_HOME}/cmdline-tools && \
   rm commandlinetools-linux-6609375_latest.zip
 
-RUN yes| ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --licenses && \
-  ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --install ndk-bundle
+RUN yes | ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --licenses && \
+  ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --install \
+    'ndk;21.4.7075529' 'platforms;android-35' 'build-tools;34.0.0'
 
 RUN mkdir -p /sm64/app/jni/SDL/
 
@@ -39,4 +44,7 @@ RUN wget https://www.libsdl.org/release/SDL2-2.0.12.zip && \
 
 WORKDIR /sm64
 
-CMD "./entrypoint.sh"
+RUN apt-get update && apt-get install -y --no-install-recommends file && \
+  rm -rf /var/lib/apt/lists/*
+
+CMD ["bash", "scripts/build-private.sh"]

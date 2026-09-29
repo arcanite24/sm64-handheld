@@ -1,0 +1,25 @@
+SM64 Handheld is an Android handheld fork built on these projects:
+
+Android port by VDavid003
+https://github.com/VDavid003/sm64-port-android-base
+
+sm64ex engine and enhancements
+https://github.com/sm64pc/sm64ex
+https://github.com/VDavid003/sm64-port-android
+
+Render96 model pack by the Render96 team (optional download)
+https://github.com/Render96/ModelPack
+
+Render96 HD Texture Pack by PokeHeadroom and its contributors (optional download; GPL-3.0 project)
+https://github.com/pokeheadroom/RENDER96-HD-TEXTURE-PACK
+
+SDL2 by Sam Lantinga and contributors (zlib license)
+https://wiki.libsdl.org/SDL2/FAQLicensing
+
+Apache Commons Compress 1.19 (Apache License 2.0)
+https://commons.apache.org/proper/commons-compress/
+
+XZ for Java 1.9 by the Tukaani project (public domain)
+https://github.com/tukaani-project/xz-java
+
+Super Mario 64 is Nintendo's game. You must supply your own original US ROM. Model and texture packs are downloaded separately.

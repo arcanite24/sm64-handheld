@@ -1,0 +1,99 @@
+name: Android setup compile
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - run: docker build -t sm64-handheld-builder .
+      - name: Check runtime ROM slices
+        run: python3 app/jni/src/tests/test_runtime_rom_assets.py
+      - name: Check ROM texture and sound generators
+        run: |
+          python3 scripts/generate-us-texture-map.py > /tmp/us-textures.tsv
+          diff -u app/src/main/assets/us-textures.tsv /tmp/us-textures.tsv
+          python3 scripts/generate-us-sequence-map.py > /tmp/us-sound-sequences.tsv
+          diff -u app/src/main/assets/us-sound-sequences.tsv /tmp/us-sound-sequences.tsv
+          mkdir -p /tmp/rom-image-check
+          javac -d /tmp/rom-image-check \
+            app/src/main/java/com/vdavid003/sm64port/RomImageDecoder.java \
+            app/src/main/java/com/vdavid003/sm64port/RomTextureArchive.java \
+            app/src/main/java/com/vdavid003/sm64port/RomSoundSequences.java \
+            app/src/main/java/com/vdavid003/sm64port/RomSoundTable.java \
+            app/src/main/java/com/vdavid003/sm64port/RomSoundControl.java \
+            app/src/main/java/com/vdavid003/sm64port/RomBaseArchive.java \
+            tests/RomImageDecoderCheck.java tests/RomSoundSequencesCheck.java \
+            tests/RomSoundTableCheck.java tests/RomSoundControlCheck.java
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomImageDecoderCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundSequencesCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundTableCheck
+          java -cp /tmp/rom-image-check com.vdavid003.sm64port.RomSoundControlCheck
+      - name: Check atomic save writes
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
+            cd app/jni/src
+            flags="-std=gnu11 -ffunction-sections -fdata-sections -DVERSION_US -DNON_MATCHING -DAVOID_UB -DTARGET_LINUX -DNO_SEGMENTED_MEMORY -D_LANGUAGE_C -DSTDC_HEADERS -D__ANDROID__ -I. -Iinclude -Isrc"
+            gcc $flags -c src/pc/ultra_reimplementation.c -o /tmp/save-io.o
+            gcc $flags -c tests/save_io.c -o /tmp/save-test.o
+            gcc -Wl,--gc-sections /tmp/save-io.o /tmp/save-test.o -o /tmp/save-test
+            /tmp/save-test
+          '
+      - name: Check setup file recovery
+        run: |
+          mkdir -p /tmp/file-swap-check
+          javac -d /tmp/file-swap-check app/src/main/java/com/vdavid003/sm64port/FileSwap.java tests/FileSwapCheck.java
+          java -cp /tmp/file-swap-check com.vdavid003.sm64port.FileSwapCheck
+      - name: Check save backup validation
+        run: |
+          mkdir -p /tmp/save-data-check
+          javac -d /tmp/save-data-check app/src/main/java/com/vdavid003/sm64port/SaveData.java tests/SaveDataCheck.java
+          java -cp /tmp/save-data-check com.vdavid003.sm64port.SaveDataCheck
+      - name: Check Android frame pacing selection
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
+            cd app/jni/src
+            gcc -std=c99 -I. tests/frame_pacing.c -o /tmp/frame-pacing-test
+            /tmp/frame-pacing-test
+          '
+      - name: Check controller binding bounds
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
+            cd app/jni/src
+            gcc -std=gnu11 -DNON_MATCHING -DAVOID_UB -fsanitize=address -fno-omit-frame-pointer -ffunction-sections -fdata-sections -Wl,--gc-sections -Iinclude -Isrc tests/controller_bindings.c -o /tmp/controller-bindings-test
+            /tmp/controller-bindings-test
+          '
+      - name: Build ROM-free Android APK
+        run: |
+          test ! -e .private/android/debug.keystore
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh
+          test -s .private/android/debug.keystore
+          git check-ignore -q .private/android/debug.keystore
+      - name: Check Android lint
+        run: docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash -lc 'cd /sm64 && ./gradlew lintDebug --console=plain'
+      - name: Build signed ROM-free APK
+        if: github.event_name == 'push' && github.repository == 'arcanite24/sm64-handheld'
+        env:
+          SM64_RELEASE_KEYSTORE_B64: ${{ secrets.SM64_RELEASE_KEYSTORE_B64 }}
+          SM64_RELEASE_STORE_PASSWORD: ${{ secrets.SM64_RELEASE_STORE_PASSWORD }}
+          SM64_RELEASE_KEY_PASSWORD: ${{ secrets.SM64_RELEASE_KEY_PASSWORD }}
+          SM64_RELEASE_KEY_ALIAS: sm64handheld
+        run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/sm64-handheld-release.jks"
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$SM64_RELEASE_KEYSTORE_B64" | base64 -d > "$keystore"
+          chmod 600 "$keystore"
+          docker run --rm \
+            --mount "type=bind,source=$PWD,target=/sm64" \
+            --mount "type=bind,source=$keystore,target=/run/secrets/sm64-handheld-release.jks,readonly" \
+            -e SM64_RELEASE_STORE_FILE=/run/secrets/sm64-handheld-release.jks \
+            -e SM64_RELEASE_STORE_PASSWORD -e SM64_RELEASE_KEY_PASSWORD -e SM64_RELEASE_KEY_ALIAS \
+            sm64-handheld-builder bash scripts/build-rom-free.sh Release
