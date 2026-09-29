@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -14,7 +14,7 @@ RUN apt-get update && \
     libsdl2-dev \
     libusb-1.0-0-dev \
     libzstd-dev \
-    openjdk-11-jdk-headless \
+    openjdk-17-jdk-headless \
     python3 \
     unzip \
     wget
@@ -31,7 +31,7 @@ RUN wget https://dl.google.com/android/repository/commandlinetools-linux-6609375
 
 RUN yes | ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --licenses && \
   ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager --install \
-    'ndk;21.4.7075529' 'platforms;android-26' 'build-tools;28.0.2'
+    'ndk;21.4.7075529' 'platforms;android-35' 'build-tools;34.0.0'
 
 RUN mkdir -p /sm64/app/jni/SDL/
 

@@ -27,6 +27,10 @@ fi
 
 ln -nsf /SDL2-2.0.12/src app/jni/SDL/src
 ln -nsf /SDL2-2.0.12/include app/jni/SDL/include
+if [[ -f .private/android/debug.keystore ]]; then
+    mkdir -p /root/.android
+    ln -nsf /sm64/.private/android/debug.keystore /root/.android/debug.keystore
+fi
 printf 'sdk.dir=%s\nndk.dir=%s\n' "$ANDROID_HOME" "$ANDROID_HOME/ndk/21.4.7075529" > local.properties
 
 python3 scripts/prepare-rom-free-native.py
@@ -51,7 +55,7 @@ with ZipFile(os.environ["SM64_APK_PATH"]) as apk:
 PY
 
 if [[ "$variant" == Release ]]; then
-    "$ANDROID_HOME/build-tools/28.0.2/apksigner" verify --print-certs "$apk" |
+    "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
         grep -Fq 'Signer #1 certificate SHA-256 digest: 442659335fcffec89b239cdb40456fac500202b3ace608ba7a26d5011c9d14fc'
 fi
 echo "ROM-free APK: $apk"

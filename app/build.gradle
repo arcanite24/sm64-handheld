@@ -13,7 +13,8 @@ else {
 }
 
 android {
-    compileSdkVersion 26
+    namespace 'com.vdavid003.sm64port'
+    compileSdkVersion 35
     signingConfigs {
         if (hasReleaseSigning) {
             handheldRelease {
@@ -29,9 +30,9 @@ android {
             applicationId "com.vdavid003.sm64port"
         }
         minSdkVersion 26
-        targetSdkVersion 26
-        versionCode 5
-        versionName "0.5-handheld"
+        targetSdkVersion 35
+        versionCode 6
+        versionName "0.6-handheld"
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4", "APP_PLATFORM=android-16"
@@ -65,20 +66,8 @@ android {
         }
        
     }
-    lintOptions {
+    lint {
         abortOnError false
-    }
-    
-    if (buildAsLibrary) {
-        libraryVariants.all { variant ->
-            variant.outputs.each { output ->
-                def outputFile = output.outputFile
-                if (outputFile != null && outputFile.name.endsWith(".aar")) {
-                    def fileName = "com.vdavid003.sm64port.aar";
-                    output.outputFile = new File(outputFile.parent, fileName);
-                }
-            }
-        }
     }
 }
 
@@ -87,6 +76,5 @@ dependencies {
     implementation('org.apache.commons:commons-compress:1.19') {
         exclude group: 'org.tukaani', module: 'xz'
     }
-    // Keep versions compatible with the inherited AGP 3.2 Android toolchain.
     implementation 'org.tukaani:xz:1.9'
 }
