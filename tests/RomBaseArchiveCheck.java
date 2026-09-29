@@ -12,11 +12,13 @@ import java.util.zip.ZipInputStream;
 
 public final class RomBaseArchiveCheck {
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) throw new IllegalArgumentException("US ROM, private base.zip, asset directory required");
+        if (args.length != 3 && args.length != 4)
+            throw new IllegalArgumentException("US ROM, private base.zip, asset directory, optional output path required");
         byte[] rom = Files.readAllBytes(Path.of(args[0]));
         Path assets = Path.of(args[2]);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         RomBaseArchive.write(rom, name -> Files.newInputStream(assets.resolve(name)), output);
+        if (args.length == 4) Files.write(Path.of(args[3]), output.toByteArray());
         int graphics = 0, sound = 0;
         try (ZipFile expected = new ZipFile(args[1]);
              ZipInputStream generated = new ZipInputStream(new ByteArrayInputStream(output.toByteArray()))) {
