@@ -377,7 +377,9 @@ public final class HandheldLauncherActivity extends Activity {
                 throw new IllegalStateException("Could not create model pack directory");
             for (String name : new String[] { WORLD_PACK, MARIO_PACK }) {
                 File destination = new File(packs(), name);
-                if (destination.exists()) continue;
+                String required = name.equals(WORLD_PACK) ? "bowser_geo.bin" : "mario_geo.bin";
+                if (new File(destination, required).isFile()) continue;
+                if (destination.exists()) deleteTree(destination);
                 if (!new File(staging, name).renameTo(destination))
                     throw new IllegalStateException("Could not install " + name);
             }
