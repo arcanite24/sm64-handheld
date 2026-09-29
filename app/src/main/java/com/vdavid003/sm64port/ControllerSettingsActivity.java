@@ -37,6 +37,9 @@ public final class ControllerSettingsActivity extends Activity {
     private static final String[] KEYS = { "key_a", "key_b", "key_z", "key_start" };
     private static final String[] ACTIONS = { "Jump", "Attack", "Crouch", "Pause" };
     private static final int[] DEFAULT_BUTTONS = { 0, 1, 26, 6 };
+    private static final String[] DEFAULT_BINDINGS = {
+            "0026 1000 1103", "0033 1001 1101", "0025 101a ffff", "0039 1006 ffff"
+    };
 
     private final Button[] mappingButtons = new Button[KEYS.length];
     private TextView deviceLabel;
@@ -99,7 +102,7 @@ public final class ControllerSettingsActivity extends Activity {
         }
 
         right.addView(label("STICKS & CAMERA", 16, Color.WHITE, true));
-        right.addView(label("Right stick looks around. L2 crouches by default.", 13, MUTED, false));
+        right.addView(label("Right stick looks around. L1 recenters; L2 crouches.", 13, MUTED, false));
         cameraButton = button("", right, new View.OnClickListener() {
             @Override public void onClick(View view) {
                 if (save("bettercam_enable", String.valueOf(!cameraEnabled()))) {
@@ -232,14 +235,7 @@ public final class ControllerSettingsActivity extends Activity {
 
     private void resetDefaults() {
         Map<String, String> changes = new LinkedHashMap<String, String>();
-        List<String> lines = readConfig();
-        for (int i = 0; i < KEYS.length; i++) {
-            String[] values = bindParts(lines, KEYS[i]);
-            String extra = values[3].equalsIgnoreCase(
-                    String.format(Locale.US, "%04x", 0x1000 + DEFAULT_BUTTONS[i])) ? "ffff" : values[3];
-            changes.put(KEYS[i], String.format(Locale.US, "%s %04x %s",
-                    values[1], 0x1000 + DEFAULT_BUTTONS[i], extra));
-        }
+        for (int i = 0; i < KEYS.length; i++) changes.put(KEYS[i], DEFAULT_BINDINGS[i]);
         changes.put("stick_deadzone", "16");
         changes.put("trigger_threshold", "23");
         changes.put("bettercam_enable", "true");

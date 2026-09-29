@@ -1,0 +1,18 @@
+name: Android setup compile
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t sm64-handheld-builder .
+      - name: Compile ROM-free setup UI
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc \
+            'printf "sdk.dir=%s\nndk.dir=%s\n" "$ANDROID_HOME" "$ANDROID_HOME/ndk/21.4.7075529" > local.properties; ./gradlew assembleDebug -PEXCLUDE_NATIVE_LIBS'

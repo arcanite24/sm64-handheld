@@ -40,6 +40,12 @@ public final class HandheldLauncherActivity extends Activity {
             "https://github.com/Render96/ModelPack/releases/download/3.25/Render96_DynOs_v3.25.7z";
     private static final String MODEL_SHA256 =
             "22eea6dafcc0a87659d60513eb6a6b0f4ea0acbc6645a6b1b445de9e5812e6df";
+    private static final String TEXTURE_URL =
+            "https://github.com/pokeheadroom/RENDER96-HD-TEXTURE-PACK/releases/download/1.3.26.7.7/Render96.HD.Texture.Pack.1.3.26.7.7.7z";
+    private static final String TEXTURE_SHA256 =
+            "a9ea999c8a4a2bd68954b0f9eecee62db481ef31f6189cf362cc72c9edc4191c";
+    private static final String TEXTURE_ROOT = "Render96 HD Texture Pack 1.3.26.7.7/";
+    private static final String TEXTURE_MARKER = ".sm64-handheld-render96-hd";
     private static final String WORLD_PACK = "Render96_DynOS_v3.25";
     private static final String MARIO_PACK = "Render96 Mario v3.25";
     private static final String WORLD_KEY = "dynos_pack_422ABEBD";
@@ -53,8 +59,11 @@ public final class HandheldLauncherActivity extends Activity {
     private Button resourcesButton;
     private Button modelsButton;
     private Button presetButton;
+    private Button texturesButton;
+    private Button texturePresetButton;
     private TextView resourcesStatus;
     private TextView modelsStatus;
+    private TextView texturesStatus;
     private TextView message;
     private boolean working;
 
@@ -103,12 +112,12 @@ public final class HandheldLauncherActivity extends Activity {
         modelsButton = button("Install Render96", second, new View.OnClickListener() {
             @Override public void onClick(View v) { installModels(); }
         });
-        presetButton = button("Switch to Classic", second, new View.OnClickListener() {
+        presetButton = button("Use Classic models", second, new View.OnClickListener() {
             @Override public void onClick(View v) {
                 try {
                     setRender96(!render96Enabled());
                     refresh();
-                    message.setText("Visual preset saved. It takes effect on the next game launch.");
+                    message.setText("Model choice saved. It takes effect on the next game launch.");
                 } catch (Exception e) {
                     showError(e);
                 }
@@ -117,6 +126,35 @@ public final class HandheldLauncherActivity extends Activity {
         LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(0, -2, 1);
         secondParams.leftMargin = dp(12);
         cards.addView(second, secondParams);
+
+        LinearLayout textures = card("03  SHARPER TEXTURES",
+                "Optional Render96 HD pack from its official release · 392 MB download.");
+        LinearLayout.LayoutParams textureParams = new LinearLayout.LayoutParams(0, -2, 1);
+        textureParams.leftMargin = dp(12);
+        cards.addView(textures, textureParams);
+        texturesStatus = label("", 13, MUTED, false);
+        textures.addView(texturesStatus);
+        LinearLayout textureActions = new LinearLayout(this);
+        textureActions.setOrientation(LinearLayout.HORIZONTAL);
+        textures.addView(textureActions);
+        texturesButton = button("Download HD textures", textureActions, new View.OnClickListener() {
+            @Override public void onClick(View v) { installTextures(); }
+        });
+        texturePresetButton = button("Use Classic textures", textureActions, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try {
+                    setTexturesEnabled(!texturesEnabled());
+                    refresh();
+                    message.setText("Texture choice saved. It takes effect on the next game launch.");
+                } catch (Exception e) {
+                    showError(e);
+                }
+            }
+        });
+        texturesButton.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 1));
+        LinearLayout.LayoutParams textureToggleParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        textureToggleParams.leftMargin = dp(12);
+        texturePresetButton.setLayoutParams(textureToggleParams);
 
         LinearLayout launchActions = new LinearLayout(this);
         launchActions.setOrientation(LinearLayout.HORIZONTAL);
@@ -139,7 +177,7 @@ public final class HandheldLauncherActivity extends Activity {
         controlsButton.setLayoutParams(controlsButtonParams);
         message = label("", 14, MUTED, false);
         root.addView(message);
-        TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     Open Controls to see your button layout.", 12, MUTED, false);
+        TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     L1  Recenter     Open Controls to see your buttons.", 12, MUTED, false);
         LinearLayout.LayoutParams controlsParams = new LinearLayout.LayoutParams(-1, -2);
         controlsParams.topMargin = dp(8);
         root.addView(controls, controlsParams);
@@ -220,6 +258,22 @@ public final class HandheldLauncherActivity extends Activity {
         return new File(new File(files(), "dynos"), "packs");
     }
 
+    private File activeTextures() {
+        return new File(new File(files(), "res"), "gfx");
+    }
+
+    private File inactiveTextures() {
+        return new File(new File(files(), "visuals"), "gfx");
+    }
+
+    private boolean texturesEnabled() {
+        return new File(activeTextures(), TEXTURE_MARKER).isFile();
+    }
+
+    private boolean texturesInstalled() {
+        return texturesEnabled() || new File(inactiveTextures(), TEXTURE_MARKER).isFile();
+    }
+
     private boolean modelsInstalled() {
         return new File(packs(), WORLD_PACK + "/bowser_geo.bin").isFile()
                 && new File(packs(), MARIO_PACK + "/mario_geo.bin").isFile();
@@ -230,12 +284,21 @@ public final class HandheldLauncherActivity extends Activity {
         boolean models = modelsInstalled();
         resourcesStatus.setText(ready ? "Ready to play" : "Needed before you can play");
         modelsStatus.setText(models ? "Installed" : "Optional · Classic models are ready");
+        texturesStatus.setText(texturesInstalled() ?
+                (texturesEnabled() ? "HD textures active" : "Installed · Classic textures active") :
+                "Optional · uses about 406 MB after installation");
         playButton.setEnabled(ready && !working);
         resourcesButton.setEnabled(!working);
         modelsButton.setEnabled(!working && !models);
         modelsButton.setText(models ? "Render96 installed" : "Install Render96");
         presetButton.setEnabled(!working && models);
-        presetButton.setText(render96Enabled() ? "Switch to Classic" : "Switch to Render96");
+        presetButton.setText(render96Enabled() ? "Use Classic models" : "Use Render96 models");
+        texturesButton.setEnabled(!working && !texturesInstalled());
+        texturesButton.setVisibility(texturesInstalled() ? View.GONE : View.VISIBLE);
+        texturesButton.setText(texturesInstalled() ? "HD textures installed" : "Download HD textures");
+        texturePresetButton.setEnabled(!working && texturesInstalled());
+        texturePresetButton.setVisibility(texturesInstalled() ? View.VISIBLE : View.GONE);
+        texturePresetButton.setText(texturesEnabled() ? "Use Classic textures" : "Use HD textures");
         message.setTextColor(MUTED);
         message.setText(working ? "Working… keep the app open." :
                 "Use the D-pad and A to select. Android Back closes this screen.");
@@ -303,47 +366,8 @@ public final class HandheldLauncherActivity extends Activity {
         deleteTree(staging);
         if (!staging.mkdirs()) throw new IllegalStateException("Could not create model storage");
         try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(MODEL_URL).openConnection();
-            connection.setConnectTimeout(20000);
-            connection.setReadTimeout(30000);
-            connection.setInstanceFollowRedirects(true);
-            try {
-                if (connection.getResponseCode() != 200)
-                    throw new IllegalStateException("Render96 download returned HTTP " + connection.getResponseCode());
-                MessageDigest digest = MessageDigest.getInstance("SHA-256");
-                InputStream input = connection.getInputStream();
-                try {
-                    OutputStream output = new FileOutputStream(archive);
-                    try {
-                        byte[] buffer = new byte[65536];
-                        long total = 0;
-                        long shownAt = 0;
-                        long expected = connection.getContentLengthLong();
-                        int size;
-                        while ((size = input.read(buffer)) != -1) {
-                            total += size;
-                            if (total > 120L * 1024 * 1024)
-                                throw new IllegalArgumentException("Model download is larger than expected");
-                            digest.update(buffer, 0, size);
-                            output.write(buffer, 0, size);
-                            if (total - shownAt >= 4L * 1024 * 1024) {
-                                shownAt = total;
-                                progress(expected > 0 ?
-                                        "Downloading Render96 · " + (total * 100 / expected) + "%" :
-                                        "Downloading Render96 · " + (total / 1024 / 1024) + " MB");
-                            }
-                        }
-                    } finally {
-                        output.close();
-                    }
-                } finally {
-                    input.close();
-                }
-                if (!MODEL_SHA256.equals(hex(digest.digest())))
-                    throw new IllegalArgumentException("Render96 download failed its integrity check");
-            } finally {
-                connection.disconnect();
-            }
+            downloadArchive(MODEL_URL, MODEL_SHA256, 120L * 1024 * 1024,
+                    archive, "Render96");
             progress("Installing Render96 models…");
             extractModels(archive, staging);
             if (!new File(staging, WORLD_PACK + "/bowser_geo.bin").isFile() ||
@@ -401,15 +425,148 @@ public final class HandheldLauncherActivity extends Activity {
         }
     }
 
+    private void installTextures() {
+        work(new Job() {
+            @Override public void run() throws Exception { downloadAndExtractTextures(); }
+        }, "HD textures installed. Start the game to see them.");
+    }
+
+    private void downloadAndExtractTextures() throws Exception {
+        if (activeTextures().exists() || inactiveTextures().exists())
+            throw new IllegalStateException("An existing texture folder needs to be moved first");
+        File archive = new File(getCacheDir(), "render96-hd.7z");
+        File staging = new File(new File(files(), "visuals"), ".render96-hd-install");
+        deleteTree(staging);
+        if (!staging.mkdirs()) throw new IllegalStateException("Could not create texture storage");
+        try {
+            downloadArchive(TEXTURE_URL, TEXTURE_SHA256, 420L * 1024 * 1024,
+                    archive, "HD textures");
+            progress("Installing HD textures…");
+            extractTextures(archive, staging);
+            File extracted = new File(staging, "gfx");
+            if (!new File(extracted, "actors/amp/amp_body.rgba16.png").isFile())
+                throw new IllegalArgumentException("Texture archive is missing required files");
+            if (!new File(extracted, TEXTURE_MARKER).createNewFile())
+                throw new IllegalStateException("Could not mark installed textures");
+            if (!extracted.renameTo(activeTextures()))
+                throw new IllegalStateException("Could not enable HD textures");
+        } finally {
+            archive.delete();
+            deleteTree(staging);
+        }
+    }
+
+    private void extractTextures(File archive, File staging) throws Exception {
+        SevenZFile seven = new SevenZFile(archive);
+        try {
+            SevenZArchiveEntry entry;
+            long total = 0;
+            int count = 0;
+            while ((entry = seven.getNextEntry()) != null) {
+                String name = entry.getName();
+                if (!name.startsWith(TEXTURE_ROOT) || entry.isDirectory()) continue;
+                String relative = name.substring(TEXTURE_ROOT.length());
+                if (!(relative.startsWith("actors/") || relative.startsWith("levels/") ||
+                      relative.startsWith("textures/")) || !relative.endsWith(".png")) continue;
+                if (relative.startsWith("/") || relative.contains("../") || relative.contains("/./") ||
+                    relative.contains("\\"))
+                    throw new IllegalArgumentException("Unsafe texture path");
+                long size = entry.getSize();
+                if (size < 0 || size > 16L * 1024 * 1024 ||
+                    (total += size) > 512L * 1024 * 1024 || ++count > 5000)
+                    throw new IllegalArgumentException("Texture archive is larger than expected");
+                if (count % 100 == 0) progress("Installing HD textures · " + count + " files");
+                File outputFile = new File(new File(staging, "gfx"), relative);
+                if (!outputFile.getParentFile().isDirectory() && !outputFile.getParentFile().mkdirs())
+                    throw new IllegalStateException("Could not create texture folder");
+                OutputStream output = new FileOutputStream(outputFile);
+                try {
+                    byte[] buffer = new byte[65536];
+                    long remaining = size;
+                    while (remaining > 0) {
+                        int read = seven.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                        if (read < 0) throw new IllegalArgumentException("Truncated texture archive");
+                        output.write(buffer, 0, read);
+                        remaining -= read;
+                    }
+                } finally {
+                    output.close();
+                }
+            }
+        } finally {
+            seven.close();
+        }
+    }
+
+    private void setTexturesEnabled(boolean enabled) throws Exception {
+        File source = enabled ? inactiveTextures() : activeTextures();
+        File target = enabled ? activeTextures() : inactiveTextures();
+        if (!new File(source, TEXTURE_MARKER).isFile() || target.exists())
+            throw new IllegalStateException("Texture folder changed; restart setup");
+        if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
+            throw new IllegalStateException("Could not create texture storage");
+        if (!source.renameTo(target)) throw new IllegalStateException("Could not switch textures");
+    }
+
+    private void downloadArchive(String url, String sha256, long maxBytes,
+                                 File archive, String label) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setConnectTimeout(20000);
+        connection.setReadTimeout(30000);
+        connection.setInstanceFollowRedirects(true);
+        try {
+            if (connection.getResponseCode() != 200)
+                throw new IllegalStateException(label + " download returned HTTP " + connection.getResponseCode());
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            InputStream input = connection.getInputStream();
+            try {
+                OutputStream output = new FileOutputStream(archive);
+                try {
+                    byte[] buffer = new byte[65536];
+                    long total = 0;
+                    long shownAt = 0;
+                    long expected = connection.getContentLengthLong();
+                    int size;
+                    while ((size = input.read(buffer)) != -1) {
+                        total += size;
+                        if (total > maxBytes)
+                            throw new IllegalArgumentException(label + " download is larger than expected");
+                        digest.update(buffer, 0, size);
+                        output.write(buffer, 0, size);
+                        if (total - shownAt >= 4L * 1024 * 1024) {
+                            shownAt = total;
+                            progress(expected > 0 ?
+                                    "Downloading " + label + " · " + (total * 100 / expected) + "%" :
+                                    "Downloading " + label + " · " + (total / 1024 / 1024) + " MB");
+                        }
+                    }
+                } finally {
+                    output.close();
+                }
+            } finally {
+                input.close();
+            }
+            if (!sha256.equals(hex(digest.digest())))
+                throw new IllegalArgumentException(label + " download failed its integrity check");
+        } finally {
+            connection.disconnect();
+        }
+    }
+
     private boolean render96Enabled() {
         File config = new File(new File(files(), "user"), "DynOS.1.0.config.txt");
         if (!config.isFile()) return true;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(config), "UTF-8"));
             try {
+                boolean world = true;
+                boolean mario = true;
                 String line;
-                while ((line = reader.readLine()) != null)
-                    if (line.startsWith(WORLD_KEY + "=")) return line.endsWith("=1");
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith(WORLD_KEY + "=")) world = line.endsWith("=1");
+                    else if (line.startsWith(MARIO_KEY + "=")) mario = line.endsWith("=1");
+                }
+                return world && mario;
             } finally {
                 reader.close();
             }
