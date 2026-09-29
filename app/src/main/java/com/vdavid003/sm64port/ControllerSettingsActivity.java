@@ -36,11 +36,12 @@ public final class ControllerSettingsActivity extends Activity {
     private static final int PANEL = 0xff1d2638;
     private static final int ACCENT = 0xffffc878;
     private static final int MUTED = 0xffb8c4d8;
-    private static final String[] KEYS = { "key_a", "key_b", "key_z", "key_start" };
-    private static final String[] ACTIONS = { "Jump", "Attack", "Crouch", "Pause" };
-    private static final int[] DEFAULT_BUTTONS = { 0, 1, 26, 6 };
+    private static final String[] KEYS = { "key_a", "key_b", "key_z", "key_start", "key_l" };
+    private static final String[] ACTIONS = { "Jump", "Attack", "Crouch", "Pause", "Recenter camera" };
+    private static final int[] DEFAULT_BUTTONS = { 0, 1, 26, 6, 9 };
     private static final String[] DEFAULT_BINDINGS = {
-            "0026 1000 1103", "0033 1001 1101", "0025 101a ffff", "0039 1006 ffff"
+            "0026 1000 1103", "0033 1001 1101", "0025 101a ffff", "0039 1006 ffff",
+            "002a 1009 1104"
     };
 
     private final Button[] mappingButtons = new Button[KEYS.length];
@@ -48,9 +49,12 @@ public final class ControllerSettingsActivity extends Activity {
     private TextView message;
     private TextView deadzoneLabel;
     private TextView triggerLabel;
+    private TextView cameraSpeedLabel;
     private SeekBar deadzoneBar;
     private SeekBar triggerBar;
+    private SeekBar cameraSpeedBar;
     private Button cameraButton;
+    private Button invertYButton;
     private ControllerMapView controllerMap;
     private String capturing;
     private int swallowedKey = -1;
@@ -111,6 +115,34 @@ public final class ControllerSettingsActivity extends Activity {
                 if (save("bettercam_enable", String.valueOf(!cameraEnabled()))) {
                     refresh();
                     message.setText("Camera change applies on the next game launch.");
+                }
+            }
+        });
+
+        cameraSpeedLabel = label("", 13, MUTED, false);
+        right.addView(cameraSpeedLabel);
+        cameraSpeedBar = new SeekBar(this);
+        cameraSpeedBar.setMax(99);
+        cameraSpeedBar.setMinimumHeight(dp(48));
+        right.addView(cameraSpeedBar);
+        cameraSpeedBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) {
+                cameraSpeedLabel.setText("Camera look speed  ·  " + (value + 1) + " / 100");
+                if (fromUser) {
+                    Map<String, String> changes = new LinkedHashMap<String, String>();
+                    changes.put("bettercam_xsens", String.valueOf(value + 1));
+                    changes.put("bettercam_ysens", String.valueOf(value + 1));
+                    try { writeConfig(changes); } catch (RuntimeException error) { showError(error); }
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        invertYButton = button("", right, new View.OnClickListener() {
+            @Override public void onClick(View view) {
+                if (save("bettercam_inverty", String.valueOf(!invertYEnabled()))) {
+                    refresh();
+                    message.setText("Vertical camera choice applies on the next game launch.");
                 }
             }
         });
@@ -177,10 +209,13 @@ public final class ControllerSettingsActivity extends Activity {
         for (int i = 0; i < KEYS.length; i++)
             mappingButtons[i].setText(ACTIONS[i] + "  ·  " + bindingLabel(KEYS[i], DEFAULT_BUTTONS[i]));
         controllerMap.setMappings(lines);
-        controllerMap.setContentDescription("Controller layout. " + mappingButtons[0].getText() + ", " +
-                mappingButtons[1].getText() + ", " + mappingButtons[2].getText() + ", " +
-                mappingButtons[3].getText());
+        StringBuilder description = new StringBuilder("Controller layout. ");
+        for (Button button : mappingButtons) description.append(button.getText()).append(", ");
+        controllerMap.setContentDescription(description.toString());
         cameraButton.setText(cameraEnabled() ? "Better Camera  ·  ON" : "Better Camera  ·  OFF");
+        cameraSpeedBar.setProgress(Math.max(0, Math.min(99, intValue("bettercam_xsens", 50) - 1)));
+        cameraSpeedLabel.setText("Camera look speed  ·  " + (cameraSpeedBar.getProgress() + 1) + " / 100");
+        invertYButton.setText(invertYEnabled() ? "Vertical look  ·  INVERTED" : "Vertical look  ·  NORMAL");
         deadzoneBar.setProgress(Math.max(0, Math.min(40, intValue("stick_deadzone", 16))));
         triggerBar.setProgress(Math.max(0, Math.min(55, intValue("trigger_threshold", 23) - 5)));
         deadzoneLabel.setText("Stick dead zone  ·  " + deadzoneBar.getProgress() + " / 40");
@@ -238,7 +273,13 @@ public final class ControllerSettingsActivity extends Activity {
     private void bindCaptured(int button) {
         String key = capturing;
         capturing = null;
-        String[] values = bindParts(readConfig(), key);
+        List<String> lines = readConfig();
+        String owner = conflictingAction(lines, key, button);
+        if (owner != null) {
+            message.setText(buttonName(button) + " is already used for " + owner + ". Choose another button.");
+            return;
+        }
+        String[] values = bindParts(lines, key);
         if (save(key, String.format(Locale.US, "%s %04x %s", values[1], 0x1000 + button, values[3]))) {
             refresh();
             message.setText(buttonName(button) + " mapped to " + actionName(key) + ". Restart the game to use it.");
@@ -251,6 +292,9 @@ public final class ControllerSettingsActivity extends Activity {
         changes.put("stick_deadzone", "16");
         changes.put("trigger_threshold", "23");
         changes.put("bettercam_enable", "true");
+        changes.put("bettercam_xsens", "50");
+        changes.put("bettercam_ysens", "50");
+        changes.put("bettercam_inverty", "false");
         try {
             writeConfig(changes);
             refresh();
@@ -263,7 +307,27 @@ public final class ControllerSettingsActivity extends Activity {
 
     private String actionName(String key) {
         for (int i = 0; i < KEYS.length; i++) if (KEYS[i].equals(key)) return ACTIONS[i];
+        if ("key_r".equals(key)) return "Camera mode";
         return key;
+    }
+
+    private String conflictingAction(List<String> lines, String key, int button) {
+        for (String line : lines) {
+            if (!line.startsWith("key_")) continue;
+            String[] parts = line.trim().split("\\s+");
+            if (parts.length < 3 || parts[0].equals(key)) continue;
+            for (int i = 2; i < Math.min(parts.length, 4); i++) {
+                try {
+                    if (Integer.parseInt(parts[i], 16) - 0x1000 == button)
+                        return actionName(parts[0]);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        for (int i = 0; i < KEYS.length; i++)
+            if (!KEYS[i].equals(key) && option(lines, KEYS[i]) == null && DEFAULT_BUTTONS[i] == button)
+                return ACTIONS[i];
+        if (option(lines, "key_r") == null && button == 10) return "Camera mode";
+        return null;
     }
 
     private String[] bindParts(List<String> lines, String key) {
@@ -275,6 +339,7 @@ public final class ControllerSettingsActivity extends Activity {
         if ("key_a".equals(key)) return new String[] { key, "0026", "1000", "1103" };
         if ("key_b".equals(key)) return new String[] { key, "0033", "1001", "1101" };
         if ("key_z".equals(key)) return new String[] { key, "0025", "101a", "ffff" };
+        if ("key_l".equals(key)) return new String[] { key, "002a", "1009", "1104" };
         return new String[] { key, "0039", "1006", "ffff" };
     }
 
@@ -390,6 +455,11 @@ public final class ControllerSettingsActivity extends Activity {
     private boolean cameraEnabled() {
         String line = option(readConfig(), "bettercam_enable");
         return line == null || line.endsWith("true");
+    }
+
+    private boolean invertYEnabled() {
+        String line = option(readConfig(), "bettercam_inverty");
+        return line != null && line.endsWith("true");
     }
 
     private boolean save(String key, String value) {
