@@ -78,6 +78,7 @@ public final class HandheldLauncherActivity extends Activity {
             FileSwap.recover(rom());
             FileSwap.recover(resources());
             FileSwap.recover(dynosConfig());
+            FileSwap.recover(new File(rom().getParentFile(), "sm64config.txt"));
         } catch (Exception error) {
             recoveryError = error;
         }
