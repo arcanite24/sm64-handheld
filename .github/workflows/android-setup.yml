@@ -63,6 +63,13 @@ jobs:
             gcc -std=c99 -I. tests/frame_pacing.c -o /tmp/frame-pacing-test
             /tmp/frame-pacing-test
           '
+      - name: Check controller binding bounds
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
+            cd app/jni/src
+            gcc -std=gnu11 -DNON_MATCHING -DAVOID_UB -fsanitize=address -fno-omit-frame-pointer -ffunction-sections -fdata-sections -Wl,--gc-sections -Iinclude -Isrc tests/controller_bindings.c -o /tmp/controller-bindings-test
+            /tmp/controller-bindings-test
+          '
       - name: Build ROM-free Android APK
         run: |
           test ! -e .private/android/debug.keystore
