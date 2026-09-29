@@ -1,6 +1,8 @@
 package com.vdavid003.sm64port;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -35,6 +37,8 @@ import java.util.Locale;
 
 public final class HandheldLauncherActivity extends Activity {
     private static final int PICK_ROM = 2;
+    private static final int EXPORT_SAVE = 3;
+    private static final int IMPORT_SAVE = 4;
     private static final String US_ROM_SHA1 = "9bef1128717f958171a4afac3ed78ee2bb4e86ce";
     private static final String MODEL_URL =
             "https://github.com/Render96/ModelPack/releases/download/3.25/Render96_DynOs_v3.25.7z";
@@ -61,6 +65,8 @@ public final class HandheldLauncherActivity extends Activity {
     private Button presetButton;
     private Button texturesButton;
     private Button texturePresetButton;
+    private Button exportSaveButton;
+    private Button importSaveButton;
     private TextView romStatus;
     private TextView modelsStatus;
     private TextView texturesStatus;
@@ -78,6 +84,7 @@ public final class HandheldLauncherActivity extends Activity {
             FileSwap.recover(rom());
             FileSwap.recover(resources());
             FileSwap.recover(dynosConfig());
+            FileSwap.recover(saveFile());
             FileSwap.recover(new File(rom().getParentFile(), "sm64config.txt"));
         } catch (Exception error) {
             recoveryError = error;
@@ -139,6 +146,23 @@ public final class HandheldLauncherActivity extends Activity {
         root.addView(message, messageParams);
         TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     L1  Recenter     Open Controls to see your buttons.", 12, MUTED, false);
         root.addView(controls);
+
+        LinearLayout saves = card("Save backup", "Export before uninstalling or changing signing keys. Import after reinstalling.");
+        exportSaveButton = button("Export progress", saves, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Intent create = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                create.addCategory(Intent.CATEGORY_OPENABLE);
+                create.setType("application/octet-stream");
+                create.putExtra(Intent.EXTRA_TITLE, "sm64-handheld-save.bin");
+                startActivityForResult(create, EXPORT_SAVE);
+            }
+        });
+        importSaveButton = button("Import progress", saves, new View.OnClickListener() {
+            @Override public void onClick(View v) { chooseFile(IMPORT_SAVE); }
+        });
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, -2);
+        saveParams.topMargin = dp(12);
+        root.addView(saves, saveParams);
 
         boolean wideCards = getResources().getConfiguration().screenWidthDp >= 740;
         LinearLayout cards = new LinearLayout(this);
@@ -269,6 +293,10 @@ public final class HandheldLauncherActivity extends Activity {
         return new File(new File(files(), "user"), "DynOS.1.0.config.txt");
     }
 
+    private File saveFile() {
+        return new File(new File(files(), "user"), "sm64_save_file.bin");
+    }
+
     private File packs() {
         return new File(new File(files(), "dynos"), "packs");
     }
@@ -307,6 +335,8 @@ public final class HandheldLauncherActivity extends Activity {
         playButton.setEnabled(ready && romReady && !working);
         playButton.setText(ready && romReady ? "Play Super Mario 64" : "Choose a US ROM to play");
         romButton.setEnabled(!working);
+        exportSaveButton.setEnabled(!working && saveFile().isFile());
+        importSaveButton.setEnabled(!working);
         modelsButton.setEnabled(!working && !models);
         modelsButton.setText(models ? "Render96 installed" : "Install Render96");
         presetButton.setEnabled(!working && models);
@@ -337,6 +367,59 @@ public final class HandheldLauncherActivity extends Activity {
             if (uri != null) work(new Job() {
                 @Override public void run() throws Exception { importRom(uri); }
             }, "US ROM verified and game files prepared. Ready to play.");
+        } else if (request == EXPORT_SAVE && result == RESULT_OK && data != null) {
+            final Uri uri = data.getData();
+            if (uri != null) work(new Job() {
+                @Override public void run() throws Exception { exportSave(uri); }
+            }, "Progress exported. Keep this backup before uninstalling.");
+        } else if (request == IMPORT_SAVE && result == RESULT_OK && data != null) {
+            final Uri uri = data.getData();
+            if (uri != null) {
+                if (saveFile().exists()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Replace current progress?")
+                            .setMessage("Importing replaces this install's save. Export it first if you want to keep it. Close the game before importing.")
+                            .setNegativeButton("Cancel", null)
+                            .setPositiveButton("Replace save", new DialogInterface.OnClickListener() {
+                                @Override public void onClick(DialogInterface dialog, int which) { importSave(uri); }
+                            })
+                            .show();
+                } else importSave(uri);
+            }
+        }
+    }
+
+    private void importSave(final Uri uri) {
+        work(new Job() {
+            @Override public void run() throws Exception {
+                File target = saveFile();
+                if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
+                    throw new IllegalStateException("Could not create save storage");
+                File temp = new File(target.getParentFile(), "sm64_save_file.bin.part");
+                try {
+                    InputStream input = getContentResolver().openInputStream(uri);
+                    if (input == null) throw new IllegalArgumentException("Could not read selected backup");
+                    try (InputStream source = input; OutputStream output = new FileOutputStream(temp)) {
+                        copy(source, output, 512);
+                    }
+                    if (!SaveData.valid(java.nio.file.Files.readAllBytes(temp.toPath())))
+                        throw new IllegalArgumentException("Choose a valid SM64 Handheld save backup");
+                    FileSwap.replace(temp, target);
+                } finally {
+                    temp.delete();
+                }
+            }
+        }, "Progress imported. Start the game to use it.");
+    }
+
+    private void exportSave(Uri uri) throws Exception {
+        File source = saveFile();
+        if (!source.isFile() || source.length() != 512)
+            throw new IllegalStateException("No complete progress file to export");
+        OutputStream output = getContentResolver().openOutputStream(uri, "w");
+        if (output == null) throw new IllegalArgumentException("Could not write selected backup");
+        try (InputStream input = new FileInputStream(source); OutputStream destination = output) {
+            copy(input, destination, 512);
         }
     }
 

@@ -51,6 +51,11 @@ jobs:
           mkdir -p /tmp/file-swap-check
           javac -d /tmp/file-swap-check app/src/main/java/com/vdavid003/sm64port/FileSwap.java tests/FileSwapCheck.java
           java -cp /tmp/file-swap-check com.vdavid003.sm64port.FileSwapCheck
+      - name: Check save backup validation
+        run: |
+          mkdir -p /tmp/save-data-check
+          javac -d /tmp/save-data-check app/src/main/java/com/vdavid003/sm64port/SaveData.java tests/SaveDataCheck.java
+          java -cp /tmp/save-data-check com.vdavid003.sm64port.SaveDataCheck
       - name: Check Android frame pacing selection
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
