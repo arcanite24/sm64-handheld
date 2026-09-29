@@ -11,8 +11,7 @@ public class sm64portActivity extends SDLActivity
 {
     @Override
     protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Request 60 Hz before SDL creates its EGL surface and probes vsync.
         if (Build.VERSION.SDK_INT >= 23) {
             Display.Mode current = getWindowManager().getDefaultDisplay().getMode();
             for (Display.Mode mode : getWindowManager().getDefaultDisplay().getSupportedModes()) {
@@ -26,6 +25,8 @@ public class sm64portActivity extends SDLActivity
                 }
             }
         }
+        super.onCreate(state);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
