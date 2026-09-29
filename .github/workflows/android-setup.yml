@@ -65,7 +65,10 @@ jobs:
           '
       - name: Build ROM-free Android APK
         run: |
+          test ! -e .private/android/debug.keystore
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh
+          test -s .private/android/debug.keystore
+          git check-ignore -q .private/android/debug.keystore
       - name: Build signed ROM-free APK
         if: github.event_name == 'push' && github.repository == 'arcanite24/sm64-handheld'
         env:

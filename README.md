@@ -2,6 +2,8 @@
 
 A controller-first Android fork of [VDavid003's SM64 Android port](https://github.com/VDavid003/sm64-port-android-base). This repository tracks the Android wrapper; [sm64-handheld-engine](https://github.com/arcanite24/sm64-handheld-engine) is its engine submodule. [backlog.md](backlog.md) records the path to a casual, fully self-contained handheld experience.
 
+For the private Android build, see the short [handheld install guide](INSTALL.md).
+
 ## What this fork changes
 
 - ARM64 build with the upstream DynOS and 60 FPS interpolation patches, widescreen, Better Camera, and texture fixes.
@@ -28,7 +30,7 @@ docker build -t sm64-handheld-builder .
 docker run --rm --mount "type=bind,source=$((Get-Location).Path),target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh
 ```
 
-The output is `app/build/outputs/apk/debug/app-debug.apk`. It is debug-signed; keep one signing key for future upgrades. Copy your own original US ROM to a location the device's file picker can open, then choose it on the app's setup screen. The app checks SHA-1 `9bef1128717f958171a4afac3ed78ee2bb4e86ce` and reconstructs the graphics and four ARM64 sound files into a private `base.zip` on the device. Mario animations and demo inputs load from that ROM at runtime.
+The output is `app/build/outputs/apk/debug/app-debug.apk`. It is debug-signed; the build keeps its signing key in ignored `.private/android/debug.keystore` so later local builds can upgrade it. Preserve that key if you move the checkout. Copy your own original US ROM to a location the device's file picker can open, then choose it on the app's setup screen. The app checks SHA-1 `9bef1128717f958171a4afac3ed78ee2bb4e86ce` and reconstructs the graphics and four ARM64 sound files into a private `base.zip` on the device. Mario animations and demo inputs load from that ROM at runtime.
 
 For Render96, choose **Install Render96** on the setup screen. The app downloads the [official v3.25 DynOS archive](https://github.com/Render96/ModelPack/releases/tag/3.25), checks its SHA-256, and installs only the world and Mario packs. The model pack has no explicit redistribution license in its repository, so it is deliberately not bundled here.
 

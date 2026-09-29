@@ -27,8 +27,14 @@ fi
 
 ln -nsf /SDL2-2.0.12/src app/jni/SDL/src
 ln -nsf /SDL2-2.0.12/include app/jni/SDL/include
-if [[ -f .private/android/debug.keystore ]]; then
-    mkdir -p /root/.android
+if [[ "$variant" == Debug ]]; then
+    mkdir -p .private/android /root/.android
+    if [[ ! -f .private/android/debug.keystore ]]; then
+        keytool -genkeypair -keystore .private/android/debug.keystore \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname 'CN=Android Debug,O=Android,C=US' >/dev/null
+    fi
     ln -nsf /sm64/.private/android/debug.keystore /root/.android/debug.keystore
 fi
 printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
