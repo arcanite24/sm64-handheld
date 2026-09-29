@@ -15,8 +15,8 @@ android {
         }
         minSdkVersion 26
         targetSdkVersion 26
-        versionCode 3
-        versionName "0.3-handheld"
+        versionCode 4
+        versionName "0.4-handheld"
         externalNativeBuild {
             ndkBuild {
                 arguments "-j4", "APP_PLATFORM=android-16"

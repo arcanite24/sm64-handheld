@@ -36,6 +36,8 @@ import java.util.zip.ZipFile;
 
 public final class HandheldLauncherActivity extends Activity {
     private static final int PICK_RESOURCES = 1;
+    private static final int PICK_ROM = 2;
+    private static final String US_ROM_SHA1 = "9bef1128717f958171a4afac3ed78ee2bb4e86ce";
     private static final String MODEL_URL =
             "https://github.com/Render96/ModelPack/releases/download/3.25/Render96_DynOs_v3.25.7z";
     private static final String MODEL_SHA256 =
@@ -57,11 +59,13 @@ public final class HandheldLauncherActivity extends Activity {
 
     private Button playButton;
     private Button resourcesButton;
+    private Button romButton;
     private Button modelsButton;
     private Button presetButton;
     private Button texturesButton;
     private Button texturePresetButton;
     private TextView resourcesStatus;
+    private TextView romStatus;
     private TextView modelsStatus;
     private TextView texturesStatus;
     private TextView message;
@@ -98,11 +102,16 @@ public final class HandheldLauncherActivity extends Activity {
         cardRow.topMargin = dp(12);
         root.addView(cards, cardRow);
 
-        LinearLayout first = card("01  GAME FILES", "Import your own privately built base.zip.");
+        LinearLayout first = card("01  GAME FILES", "Choose your own US ROM and privately built base.zip.");
+        romStatus = label("", 13, MUTED, false);
+        first.addView(romStatus);
+        romButton = button("Choose US ROM", first, new View.OnClickListener() {
+            @Override public void onClick(View v) { chooseFile(PICK_ROM); }
+        });
         resourcesStatus = label("", 13, MUTED, false);
         first.addView(resourcesStatus);
         resourcesButton = button("Choose base.zip", first, new View.OnClickListener() {
-            @Override public void onClick(View v) { chooseResources(); }
+            @Override public void onClick(View v) { chooseFile(PICK_RESOURCES); }
         });
         cards.addView(first, new LinearLayout.LayoutParams(0, -2, 1));
 
@@ -254,6 +263,10 @@ public final class HandheldLauncherActivity extends Activity {
         return new File(new File(files(), "res"), "base.zip");
     }
 
+    private File rom() {
+        return new File(new File(files(), "user"), "baserom.us.z64");
+    }
+
     private File packs() {
         return new File(new File(files(), "dynos"), "packs");
     }
@@ -281,13 +294,16 @@ public final class HandheldLauncherActivity extends Activity {
 
     private void refresh() {
         boolean ready = resources().isFile();
+        boolean romReady = validRom(rom());
         boolean models = modelsInstalled();
+        romStatus.setText(romReady ? "Verified US ROM ready" : "US ROM needed before you can play");
         resourcesStatus.setText(ready ? "Ready to play" : "Needed before you can play");
         modelsStatus.setText(models ? "Installed" : "Optional · Classic models are ready");
         texturesStatus.setText(texturesInstalled() ?
                 (texturesEnabled() ? "HD textures active" : "Installed · Classic textures active") :
                 "Optional · uses about 406 MB after installation");
-        playButton.setEnabled(ready && !working);
+        playButton.setEnabled(ready && romReady && !working);
+        romButton.setEnabled(!working);
         resourcesButton.setEnabled(!working);
         modelsButton.setEnabled(!working && !models);
         modelsButton.setText(models ? "Render96 installed" : "Install Render96");
@@ -304,11 +320,11 @@ public final class HandheldLauncherActivity extends Activity {
                 "Use the D-pad and A to select. Android Back closes this screen.");
     }
 
-    private void chooseResources() {
+    private void chooseFile(int request) {
         Intent choose = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         choose.setType("*/*");
         choose.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(choose, PICK_RESOURCES);
+        startActivityForResult(choose, request);
     }
 
     @Override
@@ -319,6 +335,52 @@ public final class HandheldLauncherActivity extends Activity {
             if (uri != null) work(new Job() {
                 @Override public void run() throws Exception { importResources(uri); }
             }, "Game files imported.");
+        } else if (request == PICK_ROM && result == RESULT_OK && data != null) {
+            final Uri uri = data.getData();
+            if (uri != null) work(new Job() {
+                @Override public void run() throws Exception { importRom(uri); }
+            }, "US ROM verified and imported.");
+        }
+    }
+
+    private boolean validRom(File file) {
+        if (!file.isFile() || file.length() != 8L * 1024 * 1024) return false;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            InputStream input = new FileInputStream(file);
+            try {
+                byte[] buffer = new byte[65536];
+                int size;
+                while ((size = input.read(buffer)) != -1) digest.update(buffer, 0, size);
+            } finally {
+                input.close();
+            }
+            return US_ROM_SHA1.equals(hex(digest.digest()));
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void importRom(Uri uri) throws Exception {
+        File target = rom();
+        if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
+            throw new IllegalStateException("Could not create ROM storage");
+        File temp = new File(target.getParentFile(), "baserom.us.z64.part");
+        try {
+            InputStream input = getContentResolver().openInputStream(uri);
+            if (input == null) throw new IllegalArgumentException("Could not read selected ROM");
+            try {
+                OutputStream output = new FileOutputStream(temp);
+                try { copy(input, output, 8L * 1024 * 1024); }
+                finally { output.close(); }
+            } finally {
+                input.close();
+            }
+            if (!validRom(temp))
+                throw new IllegalArgumentException("Choose the original 8 MB US Super Mario 64 ROM");
+            replace(temp, target);
+        } finally {
+            temp.delete();
         }
     }
 

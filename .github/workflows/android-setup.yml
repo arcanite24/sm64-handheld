@@ -14,6 +14,8 @@ jobs:
         with:
           submodules: recursive
       - run: docker build -t sm64-handheld-builder .
+      - name: Check runtime ROM slices
+        run: python3 app/jni/src/tests/test_runtime_rom_assets.py
       - name: Check atomic save writes
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
