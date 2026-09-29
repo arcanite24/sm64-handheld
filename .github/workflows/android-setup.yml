@@ -61,3 +61,22 @@ jobs:
       - name: Build ROM-free Android APK
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh
+      - name: Build signed ROM-free APK
+        if: github.event_name == 'push' && github.repository == 'arcanite24/sm64-handheld'
+        env:
+          SM64_RELEASE_KEYSTORE_B64: ${{ secrets.SM64_RELEASE_KEYSTORE_B64 }}
+          SM64_RELEASE_STORE_PASSWORD: ${{ secrets.SM64_RELEASE_STORE_PASSWORD }}
+          SM64_RELEASE_KEY_PASSWORD: ${{ secrets.SM64_RELEASE_KEY_PASSWORD }}
+          SM64_RELEASE_KEY_ALIAS: sm64handheld
+        run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/sm64-handheld-release.jks"
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$SM64_RELEASE_KEYSTORE_B64" | base64 -d > "$keystore"
+          chmod 600 "$keystore"
+          docker run --rm \
+            --mount "type=bind,source=$PWD,target=/sm64" \
+            --mount "type=bind,source=$keystore,target=/run/secrets/sm64-handheld-release.jks,readonly" \
+            -e SM64_RELEASE_STORE_FILE=/run/secrets/sm64-handheld-release.jks \
+            -e SM64_RELEASE_STORE_PASSWORD -e SM64_RELEASE_KEY_PASSWORD -e SM64_RELEASE_KEY_ALIAS \
+            sm64-handheld-builder bash scripts/build-rom-free.sh Release

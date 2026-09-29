@@ -1,5 +1,10 @@
 def buildAsLibrary = project.hasProperty('BUILD_AS_LIBRARY');
 def buildAsApplication = !buildAsLibrary
+def releaseStoreFile = System.getenv('SM64_RELEASE_STORE_FILE')
+def releaseStorePassword = System.getenv('SM64_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('SM64_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('SM64_RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 if (buildAsApplication) {
     apply plugin: 'com.android.application'
 }
@@ -9,6 +14,16 @@ else {
 
 android {
     compileSdkVersion 26
+    signingConfigs {
+        if (hasReleaseSigning) {
+            handheldRelease {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     defaultConfig {
         if (buildAsApplication) {
             applicationId "com.vdavid003.sm64port"
@@ -33,6 +48,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig signingConfigs.handheldRelease
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
