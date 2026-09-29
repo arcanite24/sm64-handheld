@@ -467,6 +467,9 @@ public final class HandheldLauncherActivity extends Activity {
     private void downloadAndExtractTextures() throws Exception {
         if (activeTextures().exists() || inactiveTextures().exists())
             throw new IllegalStateException("An existing texture folder needs to be moved first");
+        if (!activeTextures().getParentFile().isDirectory() &&
+            !activeTextures().getParentFile().mkdirs())
+            throw new IllegalStateException("Could not create texture storage");
         File archive = new File(getCacheDir(), "render96-hd.7z");
         File staging = new File(new File(files(), "visuals"), ".render96-hd-install");
         deleteTree(staging);
