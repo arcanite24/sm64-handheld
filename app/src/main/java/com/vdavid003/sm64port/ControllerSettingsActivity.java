@@ -406,9 +406,11 @@ public final class ControllerSettingsActivity extends Activity {
 
     private List<String> readConfig() {
         List<String> lines = new ArrayList<String>();
-        if (!config().isFile()) return lines;
+        File target = config();
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(config()), "UTF-8"));
+            FileSwap.recover(target);
+            if (!target.isFile()) return lines;
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(target), "UTF-8"));
             try {
                 String line;
                 while ((line = reader.readLine()) != null) lines.add(line);
@@ -510,7 +512,6 @@ public final class ControllerSettingsActivity extends Activity {
         if (!target.getParentFile().isDirectory() && !target.getParentFile().mkdirs())
             throw new IllegalStateException("Could not create settings directory");
         File temp = new File(target.getParentFile(), "sm64config.txt.part");
-        File backup = new File(target.getParentFile(), "sm64config.txt.backup");
         try {
             OutputStream output = new FileOutputStream(temp);
             try {
@@ -518,18 +519,7 @@ public final class ControllerSettingsActivity extends Activity {
             } finally {
                 output.close();
             }
-            if (backup.exists() && !target.exists() && !backup.renameTo(target))
-                throw new IllegalStateException("Could not restore game settings");
-            if (backup.exists() && !backup.delete())
-                throw new IllegalStateException("Could not clear old settings backup");
-            boolean old = target.exists();
-            if (old && !target.renameTo(backup))
-                throw new IllegalStateException("Could not back up game settings");
-            if (!temp.renameTo(target)) {
-                if (old) backup.renameTo(target);
-                throw new IllegalStateException("Could not save game settings");
-            }
-            if (old) backup.delete();
+            FileSwap.replace(temp, target);
         } catch (Exception error) {
             throw new IllegalStateException("Could not save game settings", error);
         } finally {

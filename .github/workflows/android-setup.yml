@@ -46,6 +46,11 @@ jobs:
             gcc -Wl,--gc-sections /tmp/save-io.o /tmp/save-test.o -o /tmp/save-test
             /tmp/save-test
           '
+      - name: Check setup file recovery
+        run: |
+          mkdir -p /tmp/file-swap-check
+          javac -d /tmp/file-swap-check app/src/main/java/com/vdavid003/sm64port/FileSwap.java tests/FileSwapCheck.java
+          java -cp /tmp/file-swap-check com.vdavid003.sm64port.FileSwapCheck
       - name: Build ROM-free Android APK
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh

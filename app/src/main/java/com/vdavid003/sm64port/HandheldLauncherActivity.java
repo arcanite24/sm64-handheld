@@ -73,7 +73,16 @@ public final class HandheldLauncherActivity extends Activity {
         getWindow().setStatusBarColor(BACKGROUND);
         getWindow().setNavigationBarColor(BACKGROUND);
         buildScreen();
+        Throwable recoveryError = null;
+        try {
+            FileSwap.recover(rom());
+            FileSwap.recover(resources());
+            FileSwap.recover(dynosConfig());
+        } catch (Exception error) {
+            recoveryError = error;
+        }
         refresh();
+        if (recoveryError != null) showError(recoveryError);
         (playButton.isEnabled() ? playButton : romButton).requestFocus();
     }
 
@@ -255,6 +264,10 @@ public final class HandheldLauncherActivity extends Activity {
         return new File(new File(files(), "user"), "baserom.us.z64");
     }
 
+    private File dynosConfig() {
+        return new File(new File(files(), "user"), "DynOS.1.0.config.txt");
+    }
+
     private File packs() {
         return new File(new File(files(), "dynos"), "packs");
     }
@@ -375,11 +388,11 @@ public final class HandheldLauncherActivity extends Activity {
                         }
                     }, output);
                 }
-                replace(archiveTemp, archive);
+                FileSwap.replace(archiveTemp, archive);
             } finally {
                 archiveTemp.delete();
             }
-            replace(temp, target);
+            FileSwap.replace(temp, target);
         } finally {
             temp.delete();
         }
@@ -590,7 +603,7 @@ public final class HandheldLauncherActivity extends Activity {
     }
 
     private boolean render96Enabled() {
-        File config = new File(new File(files(), "user"), "DynOS.1.0.config.txt");
+        File config = dynosConfig();
         if (!config.isFile()) return true;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(config), "UTF-8"));
@@ -613,7 +626,7 @@ public final class HandheldLauncherActivity extends Activity {
     }
 
     private void setRender96(boolean enabled) throws Exception {
-        File config = new File(new File(files(), "user"), "DynOS.1.0.config.txt");
+        File config = dynosConfig();
         if (!config.getParentFile().isDirectory() && !config.getParentFile().mkdirs())
             throw new IllegalStateException("Could not create settings directory");
         List<String> lines = new ArrayList<String>();
@@ -639,7 +652,7 @@ public final class HandheldLauncherActivity extends Activity {
             } finally {
                 output.close();
             }
-            replace(temp, config);
+            FileSwap.replace(temp, config);
         } finally {
             temp.delete();
         }
@@ -651,22 +664,6 @@ public final class HandheldLauncherActivity extends Activity {
                 if (working) message.setText(status);
             }
         });
-    }
-
-    private static void replace(File source, File destination) throws Exception {
-        File backup = new File(destination.getParentFile(), destination.getName() + ".backup");
-        if (backup.exists() && !destination.exists() && !backup.renameTo(destination))
-            throw new IllegalStateException("Could not restore previous file");
-        if (backup.exists() && !backup.delete())
-            throw new IllegalStateException("Could not clear previous backup");
-        boolean hadOriginal = destination.exists();
-        if (hadOriginal && !destination.renameTo(backup))
-            throw new IllegalStateException("Could not back up current file");
-        if (!source.renameTo(destination)) {
-            if (hadOriginal) backup.renameTo(destination);
-            throw new IllegalStateException("Could not save new file");
-        }
-        if (hadOriginal) backup.delete();
     }
 
     private static void copy(InputStream input, OutputStream output, long limit) throws Exception {
