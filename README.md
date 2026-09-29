@@ -6,7 +6,7 @@ A controller-first Android fork of [VDavid003's SM64 Android port](https://githu
 
 - ARM64 build with the upstream DynOS and 60 FPS interpolation patches, widescreen, Better Camera, and texture fixes.
 - Default right-stick camera and no on-screen touch controls; controller hot-unplug no longer closes a null haptics handle.
-- Immersive gameplay and a 60 Hz display preference on supported handhelds.
+- Immersive gameplay, a 60 Hz display preference on supported handhelds, and an awake screen during play.
 - Correct, stable Android `files/user` path for saves and DynOS settings. When installed, the Render96 world and Mario model packs start enabled; their DynOS toggles can return to Classic.
 - A landscape setup screen navigable with D-pad/A: import your own `base.zip` through Android's file picker, download the official Render96 model and HD texture archives with pinned SHA-256 integrity checks, choose Classic or Render96 visuals, then play.
 - A handheld controls screen shows the detected gamepad and current mappings, guides Jump/Attack/Crouch/Pause remapping, adjusts stick dead zone and trigger press point, toggles Better Camera, and resets the handheld defaults. Settings take effect on the next game launch.

@@ -12,6 +12,7 @@ public class sm64portActivity extends SDLActivity
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (Build.VERSION.SDK_INT >= 23) {
             Display.Mode current = getWindowManager().getDefaultDisplay().getMode();
             for (Display.Mode mode : getWindowManager().getDefaultDisplay().getSupportedModes()) {
