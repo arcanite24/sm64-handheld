@@ -9,7 +9,7 @@ A controller-first Android fork of [VDavid003's SM64 Android port](https://githu
 - Immersive gameplay, a 60 Hz display preference on supported handhelds, and an awake screen during play.
 - Correct, stable Android `files/user` path for saves and DynOS settings. When installed, the Render96 world and Mario model packs start enabled; their DynOS toggles can return to Classic.
 - A landscape setup screen navigable with D-pad/A: import your own `base.zip` through Android's file picker, download the official Render96 model and HD texture archives with pinned SHA-256 integrity checks, choose Classic or Render96 visuals, then play.
-- A handheld controls screen shows the detected gamepad and current mappings, guides Jump/Attack/Crouch/Pause remapping, adjusts stick dead zone and trigger press point, toggles Better Camera, and resets the handheld defaults. Settings take effect on the next game launch.
+- A handheld controls screen shows the detected gamepad and a live button map, guides Jump/Attack/Crouch/Pause remapping, adjusts stick dead zone and trigger press point, toggles Better Camera, and resets the handheld defaults. Settings take effect on the next game launch.
 - Launched local builds on an AYN Thor and Odin 2 Portal. Thor controller events verified movement, camera, jump, attack, crouch, and pause; the Odin disconnected before final controller verification. An in-place Thor upgrade preserved its save file. On Thor, the HD installer placed 2,220 PNGs, and a game launch showed visibly sharper textures; the Classic/HD switch was exercised in both directions.
 
 The current build is a **private development build**. It still needs a locally built `base.zip`. There is no public APK or bundled ROM, model, or texture assets.

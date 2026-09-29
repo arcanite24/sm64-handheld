@@ -1,7 +1,9 @@
 package com.vdavid003.sm64port;
 
 import android.app.Activity;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
@@ -49,6 +51,7 @@ public final class ControllerSettingsActivity extends Activity {
     private SeekBar deadzoneBar;
     private SeekBar triggerBar;
     private Button cameraButton;
+    private ControllerMapView controllerMap;
     private String capturing;
     private int swallowedKey = -1;
 
@@ -146,6 +149,10 @@ public final class ControllerSettingsActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
 
+        right.addView(label("YOUR CONTROLLER", 12, ACCENT, true));
+        controllerMap = new ControllerMapView();
+        right.addView(controllerMap, new LinearLayout.LayoutParams(-1, dp(64)));
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, -2);
@@ -166,8 +173,13 @@ public final class ControllerSettingsActivity extends Activity {
     }
 
     private void refresh() {
+        List<String> lines = readConfig();
         for (int i = 0; i < KEYS.length; i++)
             mappingButtons[i].setText(ACTIONS[i] + "  ·  " + bindingLabel(KEYS[i], DEFAULT_BUTTONS[i]));
+        controllerMap.setMappings(lines);
+        controllerMap.setContentDescription("Controller layout. " + mappingButtons[0].getText() + ", " +
+                mappingButtons[1].getText() + ", " + mappingButtons[2].getText() + ", " +
+                mappingButtons[3].getText());
         cameraButton.setText(cameraEnabled() ? "Better Camera  ·  ON" : "Better Camera  ·  OFF");
         deadzoneBar.setProgress(Math.max(0, Math.min(40, intValue("stick_deadzone", 16))));
         triggerBar.setProgress(Math.max(0, Math.min(55, intValue("trigger_threshold", 23) - 5)));
@@ -495,5 +507,74 @@ public final class ControllerSettingsActivity extends Activity {
 
     private int dp(int value) {
         return (int) (getResources().getDisplayMetrics().density * value + 0.5f);
+    }
+
+    private final class ControllerMapView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final boolean[] mapped = new boolean[28];
+
+        ControllerMapView() { super(ControllerSettingsActivity.this); }
+
+        void setMappings(List<String> lines) {
+            for (int i = 0; i < mapped.length; i++) mapped[i] = false;
+            for (String key : KEYS) {
+                String[] parts = bindParts(lines, key);
+                for (int i = 2; i <= 3; i++) {
+                    try {
+                        int button = Integer.parseInt(parts[i], 16) - 0x1000;
+                        if (button >= 0 && button < mapped.length) mapped[button] = true;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth();
+            float s = getHeight() / 64f;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(1.5f * s);
+            paint.setColor(0xff687993);
+            canvas.drawRoundRect(4 * s, 13 * s, w - 4 * s, 61 * s, 22 * s, 22 * s, paint);
+            paint.setStyle(Paint.Style.FILL);
+            pill(canvas, w * .13f, 11 * s, 26, "L2", s);
+            pill(canvas, w * .29f, 11 * s, 9, "L1", s);
+            pill(canvas, w * .71f, 11 * s, 10, "R1", s);
+            pill(canvas, w * .87f, 11 * s, 27, "R2", s);
+            dot(canvas, w * .13f, 42 * s, 13, "←", s);
+            dot(canvas, w * .21f, 42 * s, 14, "→", s);
+            dot(canvas, w * .17f, 33 * s, 11, "↑", s);
+            dot(canvas, w * .17f, 51 * s, 12, "↓", s);
+            dot(canvas, w * .30f, 43 * s, 7, "L3", s);
+            pill(canvas, w * .42f, 40 * s, 4, "Select", s);
+            pill(canvas, w * .58f, 40 * s, 6, "Start", s);
+            dot(canvas, w * .70f, 43 * s, 8, "R3", s);
+            dot(canvas, w * .82f, 27 * s, 3, "Y", s);
+            dot(canvas, w * .77f, 42 * s, 2, "X", s);
+            dot(canvas, w * .87f, 42 * s, 1, "B", s);
+            dot(canvas, w * .82f, 52 * s, 0, "A", s);
+        }
+
+        private void pill(Canvas canvas, float x, float y, int button, String name, float s) {
+            float half = (name.length() + 2) * 3.5f * s;
+            paint.setColor(mapped[button] ? ACCENT : 0xff34445b);
+            canvas.drawRoundRect(x - half, y - 7 * s, x + half, y + 7 * s, 6 * s, 6 * s, paint);
+            caption(canvas, x, y + 4 * s, name, mapped[button], s);
+        }
+
+        private void dot(Canvas canvas, float x, float y, int button, String name, float s) {
+            paint.setColor(mapped[button] ? ACCENT : 0xff34445b);
+            canvas.drawCircle(x, y, 9 * s, paint);
+            caption(canvas, x, y + 4 * s, name, mapped[button], s);
+        }
+
+        private void caption(Canvas canvas, float x, float y, String name, boolean active, float s) {
+            paint.setColor(active ? BG : MUTED);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTypeface(Typeface.DEFAULT_BOLD);
+            paint.setTextSize(10 * s);
+            canvas.drawText(name, x, y, paint);
+        }
     }
 }
