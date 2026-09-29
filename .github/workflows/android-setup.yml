@@ -11,7 +11,19 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
       - run: docker build -t sm64-handheld-builder .
+      - name: Check atomic save writes
+        run: |
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc '
+            cd app/jni/src
+            flags="-std=gnu11 -ffunction-sections -fdata-sections -DVERSION_US -DNON_MATCHING -DAVOID_UB -DTARGET_LINUX -DNO_SEGMENTED_MEMORY -D_LANGUAGE_C -DSTDC_HEADERS -D__ANDROID__ -I. -Iinclude -Isrc"
+            gcc $flags -c src/pc/ultra_reimplementation.c -o /tmp/save-io.o
+            gcc $flags -c tests/save_io.c -o /tmp/save-test.o
+            gcc -Wl,--gc-sections /tmp/save-io.o /tmp/save-test.o -o /tmp/save-test
+            /tmp/save-test
+          '
       - name: Compile ROM-free setup UI
         run: |
           docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc \
