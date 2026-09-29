@@ -213,6 +213,27 @@ public final class HandheldLauncherActivity extends Activity {
                 }
             }
         });
+        button("Credits & source projects", root, new View.OnClickListener() {
+            @Override public void onClick(View v) { showCredits(); }
+        });
+    }
+
+    private void showCredits() {
+        try (BufferedReader input = new BufferedReader(new InputStreamReader(
+                getAssets().open("credits.txt"), java.nio.charset.StandardCharsets.UTF_8))) {
+            StringBuilder credits = new StringBuilder();
+            String line;
+            while ((line = input.readLine()) != null) credits.append(line).append('\n');
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Credits & source projects")
+                    .setMessage(credits.toString())
+                    .setPositiveButton("Close", null)
+                    .show();
+            TextView links = dialog.findViewById(android.R.id.message);
+            if (links != null) android.text.util.Linkify.addLinks(links, android.text.util.Linkify.WEB_URLS);
+        } catch (Exception error) {
+            showError(error);
+        }
     }
 
     private LinearLayout card(String heading, String description) {
