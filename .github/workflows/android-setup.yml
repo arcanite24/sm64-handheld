@@ -46,7 +46,6 @@ jobs:
             gcc -Wl,--gc-sections /tmp/save-io.o /tmp/save-test.o -o /tmp/save-test
             /tmp/save-test
           '
-      - name: Compile ROM-free setup UI
+      - name: Build ROM-free Android APK
         run: |
-          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder sh -lc \
-            'printf "sdk.dir=%s\nndk.dir=%s\n" "$ANDROID_HOME" "$ANDROID_HOME/ndk/21.4.7075529" > local.properties; ./gradlew assembleDebug -PEXCLUDE_NATIVE_LIBS'
+          docker run --rm --mount "type=bind,source=$PWD,target=/sm64" sm64-handheld-builder bash scripts/build-rom-free.sh
