@@ -77,23 +77,24 @@ public final class ControllerSettingsActivity extends Activity {
         scroll.addView(root);
         setContentView(scroll);
 
-        root.addView(label("SM64  /  CONTROLS", 12, ACCENT, true));
-        root.addView(label("Make it yours.", 23, Color.WHITE, true));
+        root.addView(label("Controls & camera", 23, Color.WHITE, true));
         deviceLabel = label("", 13, MUTED, false);
         root.addView(deviceLabel);
-        message = label("D-pad/A select · Changes apply on the next game launch.", 12, MUTED, false);
+        message = label("D-pad/A select · B goes back · Changes save automatically for your next game.", 12, MUTED, false);
         root.addView(message);
 
+        boolean wide = getResources().getConfiguration().screenWidthDp >= 740;
         LinearLayout grid = new LinearLayout(this);
-        grid.setOrientation(LinearLayout.HORIZONTAL);
+        grid.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(-1, -2);
         gridParams.topMargin = dp(8);
         root.addView(grid, gridParams);
         LinearLayout left = panel();
         LinearLayout right = panel();
-        grid.addView(left, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -2, 1);
-        rightParams.leftMargin = dp(12);
+        grid.addView(left, new LinearLayout.LayoutParams(wide ? 0 : -1, -2, wide ? 1 : 0));
+        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(wide ? 0 : -1, -2, wide ? 1 : 0);
+        if (wide) rightParams.leftMargin = dp(12);
+        else rightParams.topMargin = dp(12);
         grid.addView(right, rightParams);
 
         left.addView(label("BUTTONS", 16, Color.WHITE, true));
@@ -103,7 +104,8 @@ public final class ControllerSettingsActivity extends Activity {
             mappingButtons[i] = button("", left, new View.OnClickListener() {
                 @Override public void onClick(View view) {
                     capturing = KEYS[index];
-                    message.setText("Press a gamepad button for " + ACTIONS[index] + ". Android Back cancels.");
+                    message.setTextColor(MUTED);
+                    message.setText("Press a button for " + ACTIONS[index] + ". Press its current button to keep it; Android Back cancels.");
                 }
             });
         }
@@ -186,7 +188,8 @@ public final class ControllerSettingsActivity extends Activity {
         right.addView(controllerMap, new LinearLayout.LayoutParams(-1, dp(64)));
 
         LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
+        boolean wideActions = getResources().getConfiguration().screenWidthDp >= 560;
+        actions.setOrientation(wideActions ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, -2);
         actionParams.topMargin = dp(8);
         root.addView(actions, actionParams);
@@ -196,15 +199,18 @@ public final class ControllerSettingsActivity extends Activity {
         Button reset = button("Reset controls", actions, new View.OnClickListener() {
             @Override public void onClick(View view) { resetDefaults(); }
         });
-        back.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(0, dp(48), 1);
-        resetParams.leftMargin = dp(12);
-        reset.setLayoutParams(resetParams);
+        if (wideActions) {
+            back.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 1));
+            LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+            resetParams.leftMargin = dp(12);
+            reset.setLayoutParams(resetParams);
+        }
 
         mappingButtons[0].requestFocus();
     }
 
     private void refresh() {
+        message.setTextColor(MUTED);
         List<String> lines = readConfig();
         for (int i = 0; i < KEYS.length; i++)
             mappingButtons[i].setText(ACTIONS[i] + "  ·  " + bindingLabel(KEYS[i], DEFAULT_BUTTONS[i]));
@@ -252,6 +258,11 @@ public final class ControllerSettingsActivity extends Activity {
                 return true;
             }
         }
+        if (capturing == null && event.getKeyCode() == KeyEvent.KEYCODE_BUTTON_B
+                && (event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) finish();
+            return true;
+        }
         return super.dispatchKeyEvent(event);
     }
 
@@ -272,17 +283,18 @@ public final class ControllerSettingsActivity extends Activity {
 
     private void bindCaptured(int button) {
         String key = capturing;
-        capturing = null;
         List<String> lines = readConfig();
         String owner = conflictingAction(lines, key, button);
         if (owner != null) {
-            message.setText(buttonName(button) + " is already used for " + owner + ". Choose another button.");
+            message.setTextColor(MUTED);
+            message.setText(buttonName(button) + " is used for " + owner + ". Press another button, or Android Back to cancel.");
             return;
         }
         String[] values = bindParts(lines, key);
         if (save(key, String.format(Locale.US, "%s %04x %s", values[1], 0x1000 + button, values[3]))) {
+            capturing = null;
             refresh();
-            message.setText(buttonName(button) + " mapped to " + actionName(key) + ". Restart the game to use it.");
+            message.setText(buttonName(button) + " mapped to " + actionName(key) + ". Saved for the next game.");
         }
     }
 
@@ -297,6 +309,7 @@ public final class ControllerSettingsActivity extends Activity {
         changes.put("bettercam_inverty", "false");
         try {
             writeConfig(changes);
+            capturing = null;
             refresh();
             message.setTextColor(MUTED);
             message.setText("Handheld controls restored. Restart the game to use them.");

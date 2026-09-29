@@ -74,6 +74,7 @@ public final class HandheldLauncherActivity extends Activity {
         getWindow().setNavigationBarColor(BACKGROUND);
         buildScreen();
         refresh();
+        (playButton.isEnabled() ? playButton : romButton).requestFocus();
     }
 
     private void buildScreen() {
@@ -85,28 +86,58 @@ public final class HandheldLauncherActivity extends Activity {
         scroll.addView(root);
         setContentView(scroll);
 
-        TextView eyebrow = label("SM64  /  HANDHELD EDITION", 12, ACCENT, true);
-        root.addView(eyebrow);
-        TextView title = label("Your next star awaits.", 25, Color.WHITE, true);
+        TextView title = label("Super Mario 64", 25, Color.WHITE, true);
         root.addView(title);
         TextView subtitle = label("Set up once, then play with your handheld controls.", 14, MUTED, false);
         root.addView(subtitle);
 
-        LinearLayout cards = new LinearLayout(this);
-        cards.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams cardRow = new LinearLayout.LayoutParams(-1, -2);
-        cardRow.topMargin = dp(12);
-        root.addView(cards, cardRow);
-
-        LinearLayout first = card("01  GAME FILES", "Choose your own original US ROM. Game files are prepared here on your handheld.");
+        LinearLayout first = card("Your game", "Choose your original US ROM. Game files stay on this handheld.");
         romStatus = label("", 13, MUTED, false);
         first.addView(romStatus);
         romButton = button("Choose US ROM & prepare game", first, new View.OnClickListener() {
             @Override public void onClick(View v) { chooseFile(PICK_ROM); }
         });
-        cards.addView(first, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams firstParams = new LinearLayout.LayoutParams(-1, -2);
+        firstParams.topMargin = dp(12);
+        root.addView(first, firstParams);
 
-        LinearLayout second = card("02  THE LOOK", "Render96 models, downloaded from their official release.");
+        boolean wideActions = getResources().getConfiguration().screenWidthDp >= 560;
+        LinearLayout launchActions = new LinearLayout(this);
+        launchActions.setOrientation(wideActions ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams launchParams = new LinearLayout.LayoutParams(-1, -2);
+        launchParams.topMargin = dp(12);
+        root.addView(launchActions, launchParams);
+        playButton = button("Play Super Mario 64", launchActions, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                startActivity(new Intent(HandheldLauncherActivity.this, sm64portActivity.class));
+            }
+        });
+        Button controlsButton = button("Controls & camera", launchActions, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                startActivity(new Intent(HandheldLauncherActivity.this, ControllerSettingsActivity.class));
+            }
+        });
+        if (wideActions) {
+            playButton.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 2));
+            LinearLayout.LayoutParams controlsParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+            controlsParams.leftMargin = dp(12);
+            controlsButton.setLayoutParams(controlsParams);
+        }
+        message = label("", 14, MUTED, false);
+        LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(-1, -2);
+        messageParams.topMargin = dp(8);
+        root.addView(message, messageParams);
+        TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     L1  Recenter     Open Controls to see your buttons.", 12, MUTED, false);
+        root.addView(controls);
+
+        boolean wideCards = getResources().getConfiguration().screenWidthDp >= 740;
+        LinearLayout cards = new LinearLayout(this);
+        cards.setOrientation(wideCards ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams cardRow = new LinearLayout.LayoutParams(-1, -2);
+        cardRow.topMargin = dp(12);
+        root.addView(cards, cardRow);
+
+        LinearLayout second = card("Render96 models", "Optional character and world models from the official release.");
         modelsStatus = label("", 13, MUTED, false);
         second.addView(modelsStatus);
         modelsButton = button("Install Render96", second, new View.OnClickListener() {
@@ -123,24 +154,21 @@ public final class HandheldLauncherActivity extends Activity {
                 }
             }
         });
-        LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(0, -2, 1);
-        secondParams.leftMargin = dp(12);
+        LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(wideCards ? 0 : -1, -2, wideCards ? 1 : 0);
         cards.addView(second, secondParams);
 
-        LinearLayout textures = card("03  SHARPER TEXTURES",
+        LinearLayout textures = card("Sharper textures",
                 "Optional Render96 HD pack · 392 MB download · may reduce frame rate on slower handhelds.");
-        LinearLayout.LayoutParams textureParams = new LinearLayout.LayoutParams(0, -2, 1);
-        textureParams.leftMargin = dp(12);
+        LinearLayout.LayoutParams textureParams = new LinearLayout.LayoutParams(wideCards ? 0 : -1, -2, wideCards ? 1 : 0);
+        if (wideCards) textureParams.leftMargin = dp(12);
+        else textureParams.topMargin = dp(12);
         cards.addView(textures, textureParams);
         texturesStatus = label("", 13, MUTED, false);
         textures.addView(texturesStatus);
-        LinearLayout textureActions = new LinearLayout(this);
-        textureActions.setOrientation(LinearLayout.HORIZONTAL);
-        textures.addView(textureActions);
-        texturesButton = button("Download HD textures", textureActions, new View.OnClickListener() {
+        texturesButton = button("Download HD textures", textures, new View.OnClickListener() {
             @Override public void onClick(View v) { installTextures(); }
         });
-        texturePresetButton = button("Use Classic textures", textureActions, new View.OnClickListener() {
+        texturePresetButton = button("Use Classic textures", textures, new View.OnClickListener() {
             @Override public void onClick(View v) {
                 try {
                     setTexturesEnabled(!texturesEnabled());
@@ -151,37 +179,6 @@ public final class HandheldLauncherActivity extends Activity {
                 }
             }
         });
-        texturesButton.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams textureToggleParams = new LinearLayout.LayoutParams(0, dp(48), 1);
-        textureToggleParams.leftMargin = dp(12);
-        texturePresetButton.setLayoutParams(textureToggleParams);
-
-        LinearLayout launchActions = new LinearLayout(this);
-        launchActions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams launchParams = new LinearLayout.LayoutParams(-1, -2);
-        launchParams.topMargin = dp(12);
-        root.addView(launchActions, launchParams);
-        playButton = button("Play Super Mario 64  →", launchActions, new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                startActivity(new Intent(HandheldLauncherActivity.this, sm64portActivity.class));
-            }
-        });
-        Button controlsButton = button("Controls & camera", launchActions, new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                startActivity(new Intent(HandheldLauncherActivity.this, ControllerSettingsActivity.class));
-            }
-        });
-        playButton.setLayoutParams(new LinearLayout.LayoutParams(0, dp(48), 2));
-        LinearLayout.LayoutParams controlsButtonParams = new LinearLayout.LayoutParams(0, dp(48), 1);
-        controlsButtonParams.leftMargin = dp(12);
-        controlsButton.setLayoutParams(controlsButtonParams);
-        message = label("", 14, MUTED, false);
-        root.addView(message);
-        TextView controls = label("LEFT STICK  Move     RIGHT STICK  Camera     L1  Recenter     Open Controls to see your buttons.", 12, MUTED, false);
-        LinearLayout.LayoutParams controlsParams = new LinearLayout.LayoutParams(-1, -2);
-        controlsParams.topMargin = dp(8);
-        root.addView(controls, controlsParams);
-        playButton.requestFocus();
     }
 
     private LinearLayout card(String heading, String description) {
@@ -294,6 +291,7 @@ public final class HandheldLauncherActivity extends Activity {
                 (texturesEnabled() ? "HD textures active" : "Installed · Classic textures active") :
                 "Optional · uses about 406 MB after installation");
         playButton.setEnabled(ready && romReady && !working);
+        playButton.setText(ready && romReady ? "Play Super Mario 64" : "Choose a US ROM to play");
         romButton.setEnabled(!working);
         modelsButton.setEnabled(!working && !models);
         modelsButton.setText(models ? "Render96 installed" : "Install Render96");
@@ -363,6 +361,7 @@ public final class HandheldLauncherActivity extends Activity {
             }
             if (!validRom(temp))
                 throw new IllegalArgumentException("Choose the original 8 MB US Super Mario 64 ROM");
+            progress("Preparing game files from your ROM…");
             final byte[] bytes = java.nio.file.Files.readAllBytes(temp.toPath());
             File archive = resources();
             if (!archive.getParentFile().isDirectory() && !archive.getParentFile().mkdirs())
