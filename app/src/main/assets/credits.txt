@@ -16,4 +16,10 @@ https://github.com/pokeheadroom/RENDER96-HD-TEXTURE-PACK
 SDL2 by Sam Lantinga and contributors (zlib license)
 https://wiki.libsdl.org/SDL2/FAQLicensing
 
+Apache Commons Compress 1.19 (Apache License 2.0)
+https://commons.apache.org/proper/commons-compress/
+
+XZ for Java 1.9 by the Tukaani project (public domain)
+https://github.com/tukaani-project/xz-java
+
 Super Mario 64 is Nintendo's game. You must supply your own original US ROM. Model and texture packs are downloaded separately.

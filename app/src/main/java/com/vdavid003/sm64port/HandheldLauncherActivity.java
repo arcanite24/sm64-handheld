@@ -216,16 +216,23 @@ public final class HandheldLauncherActivity extends Activity {
         button("Credits & source projects", root, new View.OnClickListener() {
             @Override public void onClick(View v) { showCredits(); }
         });
+        button("Open-source licenses", root, new View.OnClickListener() {
+            @Override public void onClick(View v) { showTextAsset("third_party_licenses.txt", "Open-source licenses"); }
+        });
     }
 
     private void showCredits() {
+        showTextAsset("credits.txt", "Credits & source projects");
+    }
+
+    private void showTextAsset(String asset, String title) {
         try (BufferedReader input = new BufferedReader(new InputStreamReader(
-                getAssets().open("credits.txt"), java.nio.charset.StandardCharsets.UTF_8))) {
+                getAssets().open(asset), java.nio.charset.StandardCharsets.UTF_8))) {
             StringBuilder credits = new StringBuilder();
             String line;
             while ((line = input.readLine()) != null) credits.append(line).append('\n');
             AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle("Credits & source projects")
+                    .setTitle(title)
                     .setMessage(credits.toString())
                     .setPositiveButton("Close", null)
                     .show();
